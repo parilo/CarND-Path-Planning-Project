@@ -132,7 +132,13 @@ vector<double> getFrenet(double x, double y, double theta, vector<double> maps_x
 }
 
 // Transform from Frenet s,d coordinates to Cartesian x,y
-vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> maps_x, vector<double> maps_y)
+vector<double> getXY(
+  double s,
+  double d,
+  const vector<double>& maps_s,
+  const vector<double>& maps_x,
+  const vector<double>& maps_y
+)
 {
 	int prev_wp = -1;
 
@@ -196,8 +202,18 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
-                     uWS::OpCode opCode) {
+  h.onMessage([
+    &map_waypoints_x,
+    &map_waypoints_y,
+    &map_waypoints_s,
+    &map_waypoints_dx,
+    &map_waypoints_dy
+    ] (
+      uWS::WebSocket<uWS::SERVER> ws,
+      char *data,
+      size_t length,
+      uWS::OpCode opCode
+    ) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -209,12 +225,12 @@ int main() {
 
       if (s != "") {
         auto j = json::parse(s);
-        
+
         string event = j[0].get<string>();
-        
+
         if (event == "telemetry") {
           // j[1] is the data JSON object
-          
+
         	// Main car's localization Data
           	double car_x = j[1]["x"];
           	double car_y = j[1]["y"];
@@ -226,28 +242,48 @@ int main() {
           	// Previous path data given to the Planner
           	auto previous_path_x = j[1]["previous_path_x"];
           	auto previous_path_y = j[1]["previous_path_y"];
-          	// Previous path's end s and d values 
+          	// Previous path's end s and d values
           	double end_path_s = j[1]["end_path_s"];
           	double end_path_d = j[1]["end_path_d"];
 
           	// Sensor Fusion Data, a list of all other cars on the same side of the road.
           	auto sensor_fusion = j[1]["sensor_fusion"];
 
+            cout <<
+              "car: s: " << car_s <<
+              " d: " << car_d <<
+              endl;
+
+            // for (auto& other_car : sensor_fusion) {
+            //   cout <<
+            //     "  id: " << other_car[0] <<
+            //     "  s: " << other_car[5] <<
+            //     "  d: " << other_car[6] <<
+            //     endl;
+            // }
+
           	json msgJson;
 
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
 
+            for (int i=0; i<20; i++) {
+              vector<double> xy = getXY(car_s + 0.2*i, car_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+              next_x_vals.push_back(xy[0]);
+              next_y_vals.push_back(xy[1]);
+            }
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           	msgJson["next_x"] = next_x_vals;
           	msgJson["next_y"] = next_y_vals;
 
+            // cout << "msg: " << msgJson.dump() << endl;
+
           	auto msg = "42[\"control\","+ msgJson.dump()+"]";
 
           	//this_thread::sleep_for(chrono::milliseconds(1000));
           	ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-          
+
         }
       } else {
         // Manual driving
@@ -290,83 +326,3 @@ int main() {
   }
   h.run();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
