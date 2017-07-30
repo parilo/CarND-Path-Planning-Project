@@ -8,6 +8,7 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
+#include "jmt.h"
 
 using namespace std;
 
@@ -202,12 +203,25 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
+  JMT jmt;
+  double prev_car_speed = 0;
+  int manuver_step = 0;
+  double manuver_start_s = 0;
+  double manuver_passed_s = 0;
+  double manuver_t = 0;
+
   h.onMessage([
     &map_waypoints_x,
     &map_waypoints_y,
     &map_waypoints_s,
     &map_waypoints_dx,
-    &map_waypoints_dy
+    &map_waypoints_dy,
+    &jmt,
+    &prev_car_speed,
+    &manuver_step,
+    &manuver_start_s,
+    &manuver_passed_s,
+    &manuver_t
     ] (
       uWS::WebSocket<uWS::SERVER> ws,
       char *data,
@@ -237,7 +251,9 @@ int main() {
           	double car_s = j[1]["s"];
           	double car_d = j[1]["d"];
           	double car_yaw = j[1]["yaw"];
-          	double car_speed = j[1]["speed"];
+            double car_speed = 0.44704 * double(j[1]["speed"]); //convert to meters per second
+            double car_accel = car_speed - prev_car_speed;
+            prev_car_speed = car_speed;
 
           	// Previous path data given to the Planner
           	auto previous_path_x = j[1]["previous_path_x"];
@@ -252,6 +268,8 @@ int main() {
             cout <<
               "car: s: " << car_s <<
               " d: " << car_d <<
+              " v: " << car_speed <<
+              " a: " << car_accel <<
               endl;
 
             // for (auto& other_car : sensor_fusion) {
@@ -262,19 +280,45 @@ int main() {
             //     endl;
             // }
 
-          	json msgJson;
+            json msgJson;
+
+            double vl = 0.44704 * 50;
+//            double al = 5;
+//            double T = (vl - car_speed) / al;
+//            cout << " T: " << T << endl;
+            double T = 5;
+            cout << "ms: " << manuver_step << " passed: " << manuver_passed_s << endl;
+
+            if (manuver_step == 0) {
+              manuver_start_s = car_s;
+            }
+            manuver_passed_s = car_s - manuver_start_s;
+
+            vector<double> next_s_vals;
+            jmt.generate_points(
+              next_s_vals,
+              {car_s, car_speed, car_accel},
+              {car_s + 50 - manuver_passed_s, vl, 0},
+              T - manuver_step * 0.02,
+              250,
+              0.02
+            );
+
+            manuver_step += 1;
 
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
 
-            for (int i=0; i<20; i++) {
-              vector<double> xy = getXY(car_s + 0.2*i, car_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+//            cout << " generated: " << next_s_vals.size() << endl;
+            for (int i=0; i<next_s_vals.size(); i++) {
+//              cout << "  next s: " << next_s_vals[i] << endl;
+              vector<double> xy = getXY(next_s_vals[i], car_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
               next_x_vals.push_back(xy[0]);
               next_y_vals.push_back(xy[1]);
             }
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-          	msgJson["next_x"] = next_x_vals;
+            msgJson["next_x"] = next_x_vals;
           	msgJson["next_y"] = next_y_vals;
 
             // cout << "msg: " << msgJson.dump() << endl;
