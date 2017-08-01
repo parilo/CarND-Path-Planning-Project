@@ -1,8 +1,17 @@
+#include <iostream>
 #include "maneuver_planner.h"
 
 void ManeuverPlanner::init_maneuver(
   double start_s
 ){
+  double start_v = 0;
+  double start_a = 0;
+  if(coords.size() > 0 && maneuver_step < maneuver_steps_count){
+    start_v = coords_dot [maneuver_step];
+    start_a = coords_dot_dot [maneuver_step];
+    std::cout << "new maneuver: v: " << start_v << " a: " << start_a << std::endl;
+  }
+
   maneuver_step = 0;
   maneuver_start_s = start_s;
   maneuver_current_s = start_s;
@@ -12,12 +21,21 @@ void ManeuverPlanner::init_maneuver(
     coords,
     coords_dot,
     coords_dot_dot,
-    {start_s, 0, 0},
+    {start_s, start_v, start_a},
     {start_s + 50, 0.44704 * 50, 0},
     5, // 5 sec for maneuver
-    manuver_steps_count,
-    manuver_step_dt // dt for calc steps
+    maneuver_steps_count,
+    maneuver_step_dt // dt for calc steps
   );
+
+  for(int i=0; i<coords.size(); i++) {
+    std::cout <<
+      "m i: " << i <<
+      " x: " << coords [i] <<
+      " v: " << coords_dot [i] <<
+      " a: " << coords_dot_dot [i] <<
+      std::endl;
+  }
 }
 
 void ManeuverPlanner::update_maneuver(
@@ -30,7 +48,7 @@ void ManeuverPlanner::update_maneuver(
 }
 
 void ManeuverPlanner::get_next_coords (std::vector<double>& coords){
-  coords.resize(manuver_steps_count - maneuver_step);
+  coords.resize(maneuver_steps_count - maneuver_step);
   std::copy(this->coords.begin() + maneuver_step, this->coords.end(), coords.begin());
 }
 

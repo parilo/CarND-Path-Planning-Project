@@ -204,8 +204,6 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-  // JMT jmt;
-  // double prev_car_speed = 0;
   ManeuverPlanner maneuver_planner;
 
   h.onMessage([
@@ -247,8 +245,6 @@ int main() {
           	double car_d = j[1]["d"];
           	double car_yaw = j[1]["yaw"];
             double car_speed = 0.44704 * double(j[1]["speed"]); //convert to meters per second
-            // double car_accel = car_speed - prev_car_speed;
-            // prev_car_speed = car_speed;
 
           	// Previous path data given to the Planner
           	auto previous_path_x = j[1]["previous_path_x"];
@@ -269,11 +265,6 @@ int main() {
             // }
 
             json msgJson;
-
-            // double vl = 0.44704 * 50;
-//            double al = 5;
-//            double T = (vl - car_speed) / al;
-//            cout << " T: " << T << endl;
 
             vector<double> next_s_vals;
             if (previous_path_x.size() < 20) {
@@ -296,26 +287,13 @@ int main() {
               "   ms: " << maneuver_planner.get_step() <<
               " passed: " << maneuver_planner.get_passed_s() <<
               " manuver t: " << maneuver_planner.get_t() <<
-              " passed steps: " << (maneuver_planner.get_steps_left() - previous_path_x.size()) <<
+              " passed steps: " << maneuver_planner.get_steps_left() <<
               endl;
-
-            // if (manuver_step == 0) {
-            //   manuver_start_s = car_s;
-            //   manuver_t = 0;
-            // } else {
-            //   manuver_t += steps_processed * 0.02;
-            //   manuver_step += steps_processed;
-            // }
-            // manuver_passed_s = car_s - manuver_start_s;
-
-            // maneuver_planner.init_maneuver(car_s);
 
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
 
-//            cout << " generated: " << next_s_vals.size() << endl;
             for (int i=0; i<next_s_vals.size(); i++) {
-//              cout << "  next s: " << next_s_vals[i] << endl;
               vector<double> xy = getXY(next_s_vals[i], car_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
               next_x_vals.push_back(xy[0]);
               next_y_vals.push_back(xy[1]);

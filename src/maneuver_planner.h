@@ -20,7 +20,7 @@ class ManeuverPlanner {
   );
 
   int get_step () { return maneuver_step; }
-  int get_steps_left () { return manuver_steps_count - maneuver_step; }
+  int get_steps_left () { return maneuver_steps_count - maneuver_step; }
   double get_passed_s () { return maneuver_current_s - maneuver_start_s; }
   double get_t () { return maneuver_t; }
 
@@ -28,8 +28,8 @@ class ManeuverPlanner {
 
  private:
 
-  const int manuver_steps_count = 200;
-  const double manuver_step_dt = 0.02;
+  const int maneuver_steps_count = 200;
+  const double maneuver_step_dt = 0.02;
 
   int maneuver_step = 0;
   double maneuver_start_s = 0;
