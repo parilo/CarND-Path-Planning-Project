@@ -58,6 +58,8 @@ void JMT::generate_parameters(
 
 void JMT::generate_points(
   std::vector<double>& coords,
+  std::vector<double>& coords_dot,
+  std::vector<double>& coords_dot_dot,
   std::vector<double> start,
   std::vector<double> end,
   double T,
@@ -78,14 +80,34 @@ void JMT::generate_points(
 
   double t = 0;
   for (int i=0; i<steps_count; i++) {
-    double t_degree = t;
+
+    double t_degree;
+
     double coord = trajectory_params[0];
+    t_degree = t;
     for (int i=1; i<6; i++) {
       coord += trajectory_params [i] * t_degree;
-//      std::cout << "  t^: " << t_degree << " add: " << trajectory_params [0] * t_degree << std::endl;
       t_degree *= t;
     }
+
+    double coord_dot = trajectory_params[1];
+    t_degree = t;
+    for (int i=2; i<6; i++) {
+      coord_dot += i * trajectory_params [i] * t_degree;
+      t_degree *= t;
+    }
+
+    double coord_dot_dot = 2 * trajectory_params[2];
+    t_degree = t;
+    for (int i=3; i<6; i++) {
+      coord_dot_dot += i * (i-1) * trajectory_params [i] * t_degree;
+      t_degree *= t;
+    }
+
     coords.push_back(coord);
+    coords_dot.push_back(coord_dot);
+    coords_dot_dot.push_back(coord_dot_dot);
+
     t += dt;
 
 //    if (i < 5) {

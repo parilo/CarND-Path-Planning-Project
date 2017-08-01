@@ -18,9 +18,11 @@ class JMT {
   );
 
   void generate_points(
-    std::vector<double>& points,
+    std::vector<double>& coords,
+    std::vector<double>& coords_dot,
+    std::vector<double>& coords_dot_dot,
     std::vector<double> start,
-    std::vector <double> end,
+    std::vector<double> end,
     double T,
     int steps_count,
     double dt
