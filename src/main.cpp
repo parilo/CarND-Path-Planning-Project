@@ -5,21 +5,15 @@
 #include <iostream>
 #include <thread>
 #include <vector>
-#include "Eigen-3.3/Eigen/Core"
-#include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
 #include "jmt.h"
 #include "maneuver_planner.h"
+#include "map_funcs.h"
 
 using namespace std;
 
 // for convenience
 using json = nlohmann::json;
-
-// For converting back and forth between radians and degrees.
-constexpr double pi() { return M_PI; }
-double deg2rad(double x) { return x * pi() / 180; }
-double rad2deg(double x) { return x * 180 / pi(); }
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -34,137 +28,6 @@ string hasData(string s) {
     return s.substr(b1, b2 - b1 + 2);
   }
   return "";
-}
-
-double distance(double x1, double y1, double x2, double y2)
-{
-	return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
-}
-int ClosestWaypoint(double x, double y, vector<double> maps_x, vector<double> maps_y)
-{
-
-	double closestLen = 100000; //large number
-	int closestWaypoint = 0;
-
-	for(int i = 0; i < maps_x.size(); i++)
-	{
-		double map_x = maps_x[i];
-		double map_y = maps_y[i];
-		double dist = distance(x,y,map_x,map_y);
-		if(dist < closestLen)
-		{
-			closestLen = dist;
-			closestWaypoint = i;
-		}
-
-	}
-
-	return closestWaypoint;
-
-}
-
-int NextWaypoint(double x, double y, double theta, vector<double> maps_x, vector<double> maps_y)
-{
-
-	int closestWaypoint = ClosestWaypoint(x,y,maps_x,maps_y);
-
-	double map_x = maps_x[closestWaypoint];
-	double map_y = maps_y[closestWaypoint];
-
-	double heading = atan2( (map_y-y),(map_x-x) );
-
-	double angle = abs(theta-heading);
-
-	if(angle > pi()/4)
-	{
-		closestWaypoint++;
-	}
-
-	return closestWaypoint;
-
-}
-
-// Transform from Cartesian x,y coordinates to Frenet s,d coordinates
-vector<double> getFrenet(double x, double y, double theta, vector<double> maps_x, vector<double> maps_y)
-{
-	int next_wp = NextWaypoint(x,y, theta, maps_x,maps_y);
-
-	int prev_wp;
-	prev_wp = next_wp-1;
-	if(next_wp == 0)
-	{
-		prev_wp  = maps_x.size()-1;
-	}
-
-	double n_x = maps_x[next_wp]-maps_x[prev_wp];
-	double n_y = maps_y[next_wp]-maps_y[prev_wp];
-	double x_x = x - maps_x[prev_wp];
-	double x_y = y - maps_y[prev_wp];
-
-	// find the projection of x onto n
-	double proj_norm = (x_x*n_x+x_y*n_y)/(n_x*n_x+n_y*n_y);
-	double proj_x = proj_norm*n_x;
-	double proj_y = proj_norm*n_y;
-
-	double frenet_d = distance(x_x,x_y,proj_x,proj_y);
-
-	//see if d value is positive or negative by comparing it to a center point
-
-	double center_x = 1000-maps_x[prev_wp];
-	double center_y = 2000-maps_y[prev_wp];
-	double centerToPos = distance(center_x,center_y,x_x,x_y);
-	double centerToRef = distance(center_x,center_y,proj_x,proj_y);
-
-	if(centerToPos <= centerToRef)
-	{
-		frenet_d *= -1;
-	}
-
-	// calculate s value
-	double frenet_s = 0;
-	for(int i = 0; i < prev_wp; i++)
-	{
-		frenet_s += distance(maps_x[i],maps_y[i],maps_x[i+1],maps_y[i+1]);
-	}
-
-	frenet_s += distance(0,0,proj_x,proj_y);
-
-	return {frenet_s,frenet_d};
-
-}
-
-// Transform from Frenet s,d coordinates to Cartesian x,y
-vector<double> getXY(
-  double s,
-  double d,
-  const vector<double>& maps_s,
-  const vector<double>& maps_x,
-  const vector<double>& maps_y
-)
-{
-	int prev_wp = -1;
-
-	while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) ))
-	{
-		prev_wp++;
-	}
-
-	int wp2 = (prev_wp+1)%maps_x.size();
-
-	double heading = atan2((maps_y[wp2]-maps_y[prev_wp]),(maps_x[wp2]-maps_x[prev_wp]));
-	// the x,y,s along the segment
-	double seg_s = (s-maps_s[prev_wp]);
-
-	double seg_x = maps_x[prev_wp]+seg_s*cos(heading);
-	double seg_y = maps_y[prev_wp]+seg_s*sin(heading);
-
-	double perp_heading = heading-pi()/2;
-
-	double x = seg_x + d*cos(perp_heading);
-	double y = seg_y + d*sin(perp_heading);
-
-	return {x,y};
-
 }
 
 int main() {
@@ -245,11 +108,11 @@ int main() {
           	double car_s = j[1]["s"];
           	double car_d = j[1]["d"];
           	double car_yaw = j[1]["yaw"];
-            double car_speed = 0.44704 * double(j[1]["speed"]); //convert to meters per second
+            double car_speed = double(j[1]["speed"]); //convert to meters per second
 
           	// Previous path data given to the Planner
-          	auto previous_path_x = j[1]["previous_path_x"];
-          	auto previous_path_y = j[1]["previous_path_y"];
+          	vector<double> previous_path_x = j[1]["previous_path_x"];
+          	vector<double> previous_path_y = j[1]["previous_path_y"];
           	// Previous path's end s and d values
           	double end_path_s = j[1]["end_path_s"];
           	double end_path_d = j[1]["end_path_d"];
@@ -268,16 +131,42 @@ int main() {
             json msgJson;
 
             vector<double> next_s_vals;
+            vector<double> next_x_vals;
+          	vector<double> next_y_vals;
+
             int passed_steps = maneuver_planner.get_steps_left() - previous_path_x.size();
-            if (previous_path_x.size() < 20) {
+            if (previous_path_x.size() < 150) {
+
               maneuver_planner.init_maneuver(car_s);
+              maneuver_planner.get_next_coords(next_s_vals);
+              double px=0, py=0;
+              // vector<double> nvx, nvy;
+              for (int i=0; i<next_s_vals.size(); i++) {
+                vector<double> xy = getXYSplined(next_s_vals[i], car_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+                // nvx.push_back(xy[0]);
+                // nvy.push_back(xy[1]);
+                next_x_vals.push_back(xy[0]);
+                next_y_vals.push_back(xy[1]);
+
+                // vx = xy[0] - px;
+                // vy = xy[1] - py;
+              }
+
+              // for (int i=1; i<nvx.size()-1; i++) {
+              //   next_x_vals.push_back((nvx[i-1] + nvx[i] + nvx[i+1])/3.0);
+              //   next_y_vals.push_back((nvy[i-1] + nvy[i] + nvy[i+1])/3.0);
+              // }
+
             } else {
               maneuver_planner.update_maneuver(
                 passed_steps,
                 car_s
               );
+              next_x_vals.resize(previous_path_x.size());
+              next_y_vals.resize(previous_path_y.size());
+              copy(previous_path_x.begin(), previous_path_x.end(), next_x_vals.begin());
+              copy(previous_path_y.begin(), previous_path_y.end(), next_y_vals.begin());
             }
-            maneuver_planner.get_next_coords(next_s_vals);
 
             // double T = 5;
             cout <<
@@ -290,17 +179,10 @@ int main() {
               " passed steps: " << passed_steps <<
               " passed s: " << maneuver_planner.get_passed_s() <<
               " manuver t: " << maneuver_planner.get_t() <<
-              " passed steps: " << maneuver_planner.get_steps_left() <<
+              " steps left: " << maneuver_planner.get_steps_left() <<
               endl;
 
-          	vector<double> next_x_vals;
-          	vector<double> next_y_vals;
 
-            for (int i=0; i<next_s_vals.size(); i++) {
-              vector<double> xy = getXY(next_s_vals[i], car_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-              next_x_vals.push_back(xy[0]);
-              next_y_vals.push_back(xy[1]);
-            }
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
             msgJson["next_x"] = next_x_vals;

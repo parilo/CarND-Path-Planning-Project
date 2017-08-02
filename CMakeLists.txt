@@ -11,6 +11,7 @@ set(sources
   src/main.cpp
   src/jmt.cpp
   src/maneuver_planner.cpp
+  src/map_funcs.cpp
 )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

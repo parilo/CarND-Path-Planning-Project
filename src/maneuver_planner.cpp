@@ -18,7 +18,7 @@ void ManeuverPlanner::init_maneuver(
   maneuver_t = 0;
 
   double end_t = 5; // 5 sec for maneuver
-  double end_v = 0.44704 * 50;
+  double end_v = 0.44704 * 45;
   double end_s = start_s + (start_v + end_v) * 0.5 * end_t;
 
   jmt.generate_points(

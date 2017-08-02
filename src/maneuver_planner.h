@@ -28,7 +28,7 @@ class ManeuverPlanner {
 
  private:
 
-  const int maneuver_steps_count = 200;
+  const int maneuver_steps_count = 250;
   const double maneuver_step_dt = 0.02;
 
   int maneuver_step = 0;
