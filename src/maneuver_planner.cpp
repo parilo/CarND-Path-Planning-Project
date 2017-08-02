@@ -17,13 +17,17 @@ void ManeuverPlanner::init_maneuver(
   maneuver_current_s = start_s;
   maneuver_t = 0;
 
+  double end_t = 5; // 5 sec for maneuver
+  double end_v = 0.44704 * 50;
+  double end_s = start_s + (start_v + end_v) * 0.5 * end_t;
+
   jmt.generate_points(
     coords,
     coords_dot,
     coords_dot_dot,
     {start_s, start_v, start_a},
-    {start_s + 50, 0.44704 * 50, 0},
-    5, // 5 sec for maneuver
+    {end_s, end_v, 0},
+    end_t,
     maneuver_steps_count,
     maneuver_step_dt // dt for calc steps
   );

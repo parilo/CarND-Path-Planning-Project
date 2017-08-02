@@ -237,6 +237,7 @@ int main() {
 
         if (event == "telemetry") {
           // j[1] is the data JSON object
+            // cout << "json: " << j.dump();
 
         	// Main car's localization Data
           	double car_x = j[1]["x"];
@@ -267,11 +268,12 @@ int main() {
             json msgJson;
 
             vector<double> next_s_vals;
+            int passed_steps = maneuver_planner.get_steps_left() - previous_path_x.size();
             if (previous_path_x.size() < 20) {
               maneuver_planner.init_maneuver(car_s);
             } else {
               maneuver_planner.update_maneuver(
-                maneuver_planner.get_steps_left() - previous_path_x.size(),
+                passed_steps,
                 car_s
               );
             }
@@ -284,8 +286,9 @@ int main() {
               " v: " << car_speed <<
               // " a: " << car_accel <<
               // " prev path: " << previous_path_x.size() <<
-              "   ms: " << maneuver_planner.get_step() <<
-              " passed: " << maneuver_planner.get_passed_s() <<
+              " m s: " << maneuver_planner.get_step() <<
+              " passed steps: " << passed_steps <<
+              " passed s: " << maneuver_planner.get_passed_s() <<
               " manuver t: " << maneuver_planner.get_t() <<
               " passed steps: " << maneuver_planner.get_steps_left() <<
               endl;
