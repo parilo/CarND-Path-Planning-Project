@@ -18,7 +18,7 @@ void ManeuverPlanner::init_maneuver(
   maneuver_t = 0;
 
   double end_t = 5; // 5 sec for maneuver
-  double end_v = 0.44704 * 45;
+  double end_v = 0.44704 * 48;
   double end_s = start_s + (start_v + end_v) * 0.5 * end_t;
 
   jmt.generate_points(
@@ -32,14 +32,14 @@ void ManeuverPlanner::init_maneuver(
     maneuver_step_dt // dt for calc steps
   );
 
-  for(int i=0; i<coords.size(); i++) {
-    std::cout <<
-      "m i: " << i <<
-      " x: " << coords [i] <<
-      " v: " << coords_dot [i] <<
-      " a: " << coords_dot_dot [i] <<
-      std::endl;
-  }
+//  for(int i=0; i<coords.size(); i++) {
+//    std::cout <<
+//      "m i: " << i <<
+//      " x: " << coords [i] <<
+//      " v: " << coords_dot [i] <<
+//      " a: " << coords_dot_dot [i] <<
+//      std::endl;
+//  }
 }
 
 void ManeuverPlanner::update_maneuver(

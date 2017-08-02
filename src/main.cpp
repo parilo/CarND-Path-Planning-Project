@@ -9,6 +9,7 @@
 #include "jmt.h"
 #include "maneuver_planner.h"
 #include "map_funcs.h"
+#include "trajectory_smoother.h"
 
 using namespace std;
 
@@ -140,23 +141,19 @@ int main() {
               maneuver_planner.init_maneuver(car_s);
               maneuver_planner.get_next_coords(next_s_vals);
               double px=0, py=0;
-              // vector<double> nvx, nvy;
+              vector<double> new_xs, new_ys;
               for (int i=0; i<next_s_vals.size(); i++) {
                 vector<double> xy = getXYSplined(next_s_vals[i], car_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-                // nvx.push_back(xy[0]);
-                // nvy.push_back(xy[1]);
-                next_x_vals.push_back(xy[0]);
-                next_y_vals.push_back(xy[1]);
-
-                // vx = xy[0] - px;
-                // vy = xy[1] - py;
+                new_xs.push_back(xy[0]);
+                new_ys.push_back(xy[1]);
               }
 
-              // for (int i=1; i<nvx.size()-1; i++) {
-              //   next_x_vals.push_back((nvx[i-1] + nvx[i] + nvx[i+1])/3.0);
-              //   next_y_vals.push_back((nvy[i-1] + nvy[i] + nvy[i+1])/3.0);
-              // }
-
+              TrajectorySmoother::merge_trajectoies(next_x_vals, previous_path_x, new_xs, 100);
+              TrajectorySmoother::smooth_trajectory(next_x_vals);
+              TrajectorySmoother::smooth_trajectory(next_x_vals);
+              TrajectorySmoother::merge_trajectoies(next_y_vals, previous_path_y, new_ys, 100);
+              TrajectorySmoother::smooth_trajectory(next_y_vals);
+              TrajectorySmoother::smooth_trajectory(next_y_vals);
             } else {
               maneuver_planner.update_maneuver(
                 passed_steps,
@@ -174,15 +171,13 @@ int main() {
               " d: " << car_d <<
               " v: " << car_speed <<
               // " a: " << car_accel <<
-              // " prev path: " << previous_path_x.size() <<
+              " prev path: " << previous_path_x.size() <<
               " m s: " << maneuver_planner.get_step() <<
               " passed steps: " << passed_steps <<
               " passed s: " << maneuver_planner.get_passed_s() <<
               " manuver t: " << maneuver_planner.get_t() <<
               " steps left: " << maneuver_planner.get_steps_left() <<
               endl;
-
-
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
             msgJson["next_x"] = next_x_vals;
