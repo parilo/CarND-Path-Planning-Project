@@ -10,7 +10,7 @@
 class BehaviorLayer {
  public:
 
-  enum class CarState {MOVE_FORWARD, FOLLOW, CHANGING_LEFT, CHANGING_RIGHT};
+  enum class CarState {START, MOVE_FORWARD, FOLLOW, CHANGING_LEFT, CHANGING_RIGHT};
 
   void set_map_waypoints (
    const std::vector<double>& map_waypoints_s,
@@ -35,12 +35,12 @@ class BehaviorLayer {
   std::vector<double> map_waypoints_x;
   std::vector<double> map_waypoints_y;
 
-  CarState current_state = CarState::MOVE_FORWARD;
+  CarState current_state = CarState::START;
   int dst_lane_index = 1;
   ManeuverPlanner maneuver_planner;
 
   bool update_current_state (
-    const std::vector<double>& car_state,
+    const std::vector<double>& car_state, // x, y, s, d, yaw, v
     const std::vector<std::vector<double>>& sensor_data
   );
 
@@ -50,6 +50,12 @@ class BehaviorLayer {
   );
 
   bool is_dst_lane_reached (const std::vector<double>& car_state);
+
+  void calc_move_forward (
+    std::vector<double>& next_x_vals,
+    std::vector<double>& next_y_vals,
+    const std::vector<double>& car_state
+  );
 
 };
 

@@ -29,6 +29,7 @@ void get_lanes_values (
   lanes_values.resize(3, 1000);
   double car_s = car_state[2];
   double car_s_dot = car_state[5];
+  int my_lane_index = get_lane_index (car_state[3]);
 
   // inspecting information about other cars on the road
   for (auto& other_car_data : sensor_data)
@@ -45,7 +46,13 @@ void get_lanes_values (
     // determine ds/dt, suppose car travels along the road
     double other_car_s_dot = distance (0, 0, other_car_vx, other_car_vy);
 
-    if (other_car_s_dot != car_s_dot) {
+    if (
+        other_car_s_dot != car_s_dot &&
+        (
+          car_s < other_car_s && my_lane_index == lane_index ||
+          my_lane_index != lane_index
+        )
+    ) {
       double time_to_collision = (car_s - other_car_s) / (other_car_s_dot - car_s_dot);
 // std::cout << "    v: " << time_to_collision << std::endl;
       if (
@@ -136,55 +143,63 @@ bool BehaviorLayer::update_current_state (
 
   CarState prev_state = current_state;
 
-  switch(current_state){
-    case CarState::MOVE_FORWARD:
-      int my_lane_index = get_lane_index (car_d);
-      if (lanes_values [my_lane_index] < forward_until_time)
-      {
-        //we need to decide wether we need to:
-        //1. change lane
-        //2. follow next car in the lane
-        int lane_index_change = try_change_lane (car_state, lanes_values);
-        switch(lane_index_change)
-        {
-          case -1:
-            current_state = CarState::CHANGING_LEFT;
-          break;
-          case 0:
-            current_state = CarState::FOLLOW;
-          break;
-          case 1:
-            current_state = CarState::CHANGING_RIGHT;
-          break;
-        }
-        dst_lane_index = my_lane_index + lane_index_change;
-
-      }
-    break;
-
-    case CarState::CHANGING_LEFT:
-    case CarState::CHANGING_RIGHT:
+  if (current_state == CarState::START)
+  {
+    std::cout << "prev state: " << int(current_state) << " " << int(CarState::START);
+    current_state = CarState::MOVE_FORWARD;
+    std::cout << " new state: " << int(current_state) << " " << int(CarState::MOVE_FORWARD) << std::endl;
+  }
+  else if (current_state == CarState::MOVE_FORWARD)
+  {
+    int my_lane_index = get_lane_index (car_d);
+    if (lanes_values [my_lane_index] < forward_until_time)
     {
-      if (is_dst_lane_reached(car_state)) {
-        current_state = CarState::MOVE_FORWARD;
-        update_current_state (car_state, sensor_data);
-      };
-      break;
-    }
+      //we need to decide wether we need to:
+      //1. change lane
+      //2. follow next car in the lane
+      int lane_index_change = try_change_lane (car_state, lanes_values);
+      switch(lane_index_change)
+      {
+        case -1:
+          current_state = CarState::CHANGING_LEFT;
+        break;
+        case 0:
+          current_state = CarState::FOLLOW;
+        break;
+        case 1:
+          current_state = CarState::CHANGING_RIGHT;
+        break;
+      }
+      dst_lane_index = my_lane_index + lane_index_change;
 
-  //   case CarState::FOLLOW:
-  //     int lane_index_change = try_change_lane (car_state, lanes_values);
-  //     switch(lane_index_change)
-  //     {
-  //       case -1:
-  //         current_state = CarState::CHANGING_LEFT;
-  //       break;
-  //       case 1:
-  //         current_state = CarState::CHANGING_RIGHT;
-  //       break;
-  //     }
-  //     dst_lane_index = my_lane_index + lane_index_change;
-  //   break;
+    }
+  }
+
+  else if (
+    current_state == CarState::CHANGING_LEFT ||
+    current_state == CarState::CHANGING_RIGHT
+  )
+  {
+    if (is_dst_lane_reached(car_state)) {
+      current_state = CarState::MOVE_FORWARD;
+      update_current_state (car_state, sensor_data);
+    };
+  }
+
+  else if (current_state == CarState::FOLLOW)
+  {
+    int my_lane_index = get_lane_index (car_d);
+    int lane_index_change = try_change_lane (car_state, lanes_values);
+    switch(lane_index_change)
+    {
+     case -1:
+       current_state = CarState::CHANGING_LEFT;
+     break;
+     case 1:
+       current_state = CarState::CHANGING_RIGHT;
+     break;
+    }
+    dst_lane_index = my_lane_index + lane_index_change;
   }
 
   return prev_state != current_state;
@@ -200,25 +215,18 @@ void BehaviorLayer::process_step (
 )
 {
 
+//  double car_d = car_state[3];
+//  std::cout << "car lane: " << get_lane_index(car_d) << " state: " << int(current_state) << std::endl;
+
   bool state_changed = update_current_state (car_state, sensor_data);
-  std::cout << "car state: " << int(current_state) << std::endl;
 
-  double car_s = car_state[2];
-  double car_d = car_state[3];
-
-  int passed_steps = maneuver_planner.get_steps_left() - previous_path_x.size();
-  if (previous_path_x.size() < 150) {
-
-    std::vector<double> next_s_vals;
-    maneuver_planner.init_maneuver(car_s);
-    maneuver_planner.get_next_coords(next_s_vals);
-
-    double px=0, py=0;
+  if (state_changed || previous_path_x.size() < 150)
+  {
     std::vector<double> new_xs, new_ys;
-    for (int i=0; i<next_s_vals.size(); i++) {
-      std::vector<double> xy = getXYSplined(next_s_vals[i], car_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-      new_xs.push_back(xy[0]);
-      new_ys.push_back(xy[1]);
+
+    if (current_state == CarState::MOVE_FORWARD)
+    {
+      calc_move_forward(new_xs, new_ys, car_state);
     }
 
     TrajectorySmoother::merge_trajectoies(next_x_vals, previous_path_x, new_xs, 100);
@@ -227,7 +235,11 @@ void BehaviorLayer::process_step (
     TrajectorySmoother::merge_trajectoies(next_y_vals, previous_path_y, new_ys, 100);
     TrajectorySmoother::smooth_trajectory(next_y_vals);
     TrajectorySmoother::smooth_trajectory(next_y_vals);
-  } else {
+  }
+  else
+  {
+    double car_s = car_state[2];
+    int passed_steps = maneuver_planner.get_steps_left() - previous_path_x.size();
     maneuver_planner.update_maneuver(
       passed_steps,
       car_s
@@ -238,4 +250,25 @@ void BehaviorLayer::process_step (
     copy(previous_path_y.begin(), previous_path_y.end(), next_y_vals.begin());
   }
 
+}
+
+void BehaviorLayer::calc_move_forward (
+  std::vector<double>& next_x_vals,
+  std::vector<double>& next_y_vals,
+  const std::vector<double>& car_state
+)
+{
+  double car_s = car_state[2];
+  double car_d = car_state[3];
+
+  std::vector<double> next_s_vals;
+  maneuver_planner.init_maneuver(car_s);
+  maneuver_planner.get_next_coords(next_s_vals);
+
+  double px=0, py=0;
+  for (int i=0; i<next_s_vals.size(); i++) {
+    std::vector<double> xy = getXYSplined(next_s_vals[i], car_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    next_x_vals.push_back(xy[0]);
+    next_y_vals.push_back(xy[1]);
+  }
 }

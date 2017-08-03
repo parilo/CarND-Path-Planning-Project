@@ -9,7 +9,7 @@ void ManeuverPlanner::init_maneuver(
   if(coords.size() > 0 && maneuver_step < maneuver_steps_count){
     start_v = coords_dot [maneuver_step];
     start_a = coords_dot_dot [maneuver_step];
-    std::cout << "new maneuver: v: " << start_v << " a: " << start_a << std::endl;
+//    std::cout << "new maneuver: v: " << start_v << " a: " << start_a << std::endl;
   }
 
   maneuver_step = 0;
