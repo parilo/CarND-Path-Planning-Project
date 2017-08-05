@@ -29,7 +29,9 @@ class BehaviorLayer {
 
  private:
 
-  const double forward_until_time = 5;
+  const double safety_time_to_collision = 10;
+  const double safety_change_lane_gap = 10;
+  const double safety_front_car_dist = 30;
 
   std::vector<double> map_waypoints_s;
   std::vector<double> map_waypoints_x;
@@ -46,15 +48,43 @@ class BehaviorLayer {
 
   int try_change_lane (
     const std::vector<double>& car_state,
-    const std::vector<double>& lanes_values
+    const std::vector<double>& lanes_time_to_collision,
+    const std::vector<double>& lanes_distances,
+    const std::vector<double>& lanes_speed,
+    const std::vector<std::vector<double>>& sensor_data
   );
 
   bool is_dst_lane_reached (const std::vector<double>& car_state);
+
+  double get_front_car_speed (
+    const std::vector<double>& car_state,
+    const std::vector<std::vector<double>>& sensor_data
+  );
+
+  bool is_lane_closed (
+    int lane_index,
+    const std::vector<double>& car_state,
+    const std::vector<std::vector<double>>& sensor_data
+  );
 
   void calc_move_forward (
     std::vector<double>& next_x_vals,
     std::vector<double>& next_y_vals,
     const std::vector<double>& car_state
+  );
+
+  void calc_move_forward (
+    std::vector<double>& next_x_vals,
+    std::vector<double>& next_y_vals,
+    const std::vector<double>& car_state,
+    double dst_speed
+  );
+
+  void calc_change_lane (
+    std::vector<double>& next_x_vals,
+    std::vector<double>& next_y_vals,
+    const std::vector<double>& car_state,
+    int new_lane_index
   );
 
 };

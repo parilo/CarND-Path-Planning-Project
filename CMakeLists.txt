@@ -10,6 +10,7 @@ set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 set(sources
   src/main.cpp
   src/jmt.cpp
+  src/maneuver_planner_1d.cpp
   src/maneuver_planner.cpp
   src/map_funcs.cpp
   src/trajectory_smoother.cpp

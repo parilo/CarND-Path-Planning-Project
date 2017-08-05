@@ -2,7 +2,7 @@
 #define MANEUVER_PLANNER_H
 
 #include <vector>
-#include "jmt.h"
+#include "maneuver_planner_1d.h"
 
 /**
  * @brief class for maneuvers planning
@@ -10,37 +10,47 @@
 class ManeuverPlanner {
  public:
 
-  void init_maneuver(
-    double start_s
+   void calc_acceleration (
+     std::vector<double>& next_s_vals,
+     std::vector<double>& next_d_vals,
+     double start_s,
+     double end_s_dot,
+     double start_d,
+     double end_d
+   );
+
+  //  void calc_deceleration ();
+  void calc_change_lane (
+    std::vector<double>& next_s_vals,
+    std::vector<double>& next_d_vals,
+    double start_s,
+    double start_d,
+    double end_d
   );
+
+  //  void calc_constant_speed (
+  //    std::vector<double>& next_s_vals,
+  //    std::vector<double>& next_d_vals,
+  //    double start_s,
+  //    double start_s_dot,
+  //    double start_d,
+  //    double end_d
+  //  );
+
+  int get_steps_left () { return s_planner.get_steps_left(); }
 
   void update_maneuver(
     int step_passed,
-    double current_s
+    double current_s,
+    double current_d
   );
-
-  int get_step () { return maneuver_step; }
-  int get_steps_left () { return maneuver_steps_count - maneuver_step; }
-  double get_passed_s () { return maneuver_current_s - maneuver_start_s; }
-  double get_t () { return maneuver_t; }
-
-  void get_next_coords (std::vector<double>& coords);
 
  private:
 
-  const int maneuver_steps_count = 250;
-  const double maneuver_step_dt = 0.02;
+   const int maneuver_min_steps_count = 250;
 
-  int maneuver_step = 0;
-  double maneuver_start_s = 0;
-  double maneuver_current_s = 0;
-  double maneuver_t = 0;
-
-  JMT jmt;
-
-  std::vector<double> coords;
-  std::vector<double> coords_dot;
-  std::vector<double> coords_dot_dot;
+  ManeuverPlanner1d s_planner;
+  ManeuverPlanner1d d_planner;
 
 };
 

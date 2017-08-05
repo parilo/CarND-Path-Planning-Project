@@ -66,19 +66,19 @@ void JMT::generate_points(
   int steps_count,
   double dt
 ){
-  coords.clear();
-  coords_dot.clear();
-  coords_dot_dot.clear();
+  // coords.clear();
+  // coords_dot.clear();
+  // coords_dot_dot.clear();
   std::vector<double> trajectory_params;
   generate_parameters(trajectory_params, start, end, T);
-  std::cout << "params: " <<
-    trajectory_params [0] << " " <<
-    trajectory_params [1] << " " <<
-    trajectory_params [2] << " " <<
-    trajectory_params [3] << " " <<
-    trajectory_params [4] << " " <<
-    trajectory_params [5] << " " <<
-    std::endl;
+  // std::cout << "params: " <<
+  //   trajectory_params [0] << " " <<
+  //   trajectory_params [1] << " " <<
+  //   trajectory_params [2] << " " <<
+  //   trajectory_params [3] << " " <<
+  //   trajectory_params [4] << " " <<
+  //   trajectory_params [5] << " " <<
+  //   std::endl;
 
   double t = 0;
   for (int i=0; i<steps_count; i++) {

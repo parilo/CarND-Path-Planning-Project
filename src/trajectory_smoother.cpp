@@ -27,6 +27,7 @@ void TrajectorySmoother::smooth_trajectory(
 {
   for(int i=1; i<trajectory.size()-1; i++)
   {
-    trajectory[i] = (trajectory[i-1] + trajectory[i] + trajectory[i+1]) / 3.0;
+    // trajectory[i] = (trajectory[i-1] + trajectory[i] + trajectory[i+1]) / 3.0;
+    trajectory[i] = (trajectory[i-1] + trajectory[i+1]) / 2.0;
   }
 }
