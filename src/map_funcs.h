@@ -25,6 +25,15 @@ std::vector<double> getXY(
   const std::vector<double>& maps_y
 );
 
+double getMaxCurvatureOfRoad(
+  double s,
+  double d,
+  double length,
+  const std::vector<double>& maps_s,
+  const std::vector<double>& maps_x,
+  const std::vector<double>& maps_y
+);
+
 void getSplinedMapPoints(
   double s,
   std::vector<double>& splined_maps_s,

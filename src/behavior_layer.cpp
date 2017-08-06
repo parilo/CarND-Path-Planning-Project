@@ -18,13 +18,13 @@ void BehaviorLayer::set_map_waypoints (
 int get_lane_index (double car_d)
 {
   // lanes centers positions in d are: 2.2, 6.2, 10.2 in average
-  return int(round((car_d - 2.2) / 4.0));
+  return int(round((car_d - 1.8) / 4.0));
 }
 
 
 double get_lane_d (int lane_index)
 {
-  return lane_index * 4 + 2.2;
+  return lane_index * 4 + 1.8;
 }
 
 
@@ -195,7 +195,7 @@ int BehaviorLayer::try_change_lane (
     if ((lanes_distances[0] > lanes_distances[2]) && left_lane_open){
       if (
         (
-          lanes_distances[0] > 1.5 * (safety_front_car_dist + safety_change_lane_gap) &&
+          lanes_distances[0] > 1.4 * (safety_front_car_dist + safety_change_lane_gap) &&
           left_lane_open
         ) || (
           lanes_distances[0] > lanes_distances[1] &&
@@ -211,7 +211,7 @@ int BehaviorLayer::try_change_lane (
     } else {
       if (
         (
-          lanes_distances[2] > 1.5 * (safety_front_car_dist + safety_change_lane_gap) &&
+          lanes_distances[2] > (safety_front_car_dist + safety_change_lane_gap) &&
           right_lane_open
         ) || (
           lanes_distances[2] > lanes_distances[1] &&
@@ -280,7 +280,13 @@ bool BehaviorLayer::update_current_state (
   else if (current_state == CarState::MOVE_FORWARD)
   {
     int my_lane_index = get_lane_index (car_d);
-    // if (lanes_time_to_collision [my_lane_index] < forward_until_time)
+
+//bool right_lane_open = !is_lane_closed(2, car_state, sensor_data);
+//if (right_lane_open && car_state[5] > 15.0 && my_lane_index < 2){
+//  current_state = CarState::CHANGING_RIGHT;
+//  dst_lane_index = my_lane_index + 1;
+//} else
+
     if (lanes_distances [my_lane_index] < safety_front_car_dist)
     {
       //we need to decide wether we need to:
@@ -306,7 +312,17 @@ bool BehaviorLayer::update_current_state (
         break;
       }
       dst_lane_index = my_lane_index + lane_index_change;
-
+    }
+    else if (
+      my_lane_index != 1 &&
+      lanes_distances[my_lane_index] <= lanes_distances[1]
+    )
+    {
+      bool center_lane_open = !is_lane_closed(1, car_state, sensor_data);
+      if (center_lane_open) {
+        current_state = my_lane_index > 1 ? CarState::CHANGING_LEFT : CarState::CHANGING_RIGHT;
+        dst_lane_index = 1;
+      }
     }
   }
 
@@ -324,23 +340,29 @@ bool BehaviorLayer::update_current_state (
   else if (current_state == CarState::FOLLOW)
   {
     int my_lane_index = get_lane_index (car_d);
-    int lane_index_change = try_change_lane (
-      car_state,
-      lanes_time_to_collision,
-      lanes_distances,
-      lanes_speed,
-      sensor_data
-    );
-    switch(lane_index_change)
-    {
-     case -1:
-       current_state = CarState::CHANGING_LEFT;
-     break;
-     case 1:
-       current_state = CarState::CHANGING_RIGHT;
-     break;
+    if (lanes_distances [my_lane_index] > 1.5 * safety_front_car_dist){
+      current_state = CarState::MOVE_FORWARD;
+    } else {
+
+      int lane_index_change = try_change_lane (
+        car_state,
+        lanes_time_to_collision,
+        lanes_distances,
+        lanes_speed,
+        sensor_data
+      );
+      switch(lane_index_change)
+      {
+       case -1:
+         current_state = CarState::CHANGING_LEFT;
+       break;
+       case 1:
+         current_state = CarState::CHANGING_RIGHT;
+       break;
+      }
+      dst_lane_index = my_lane_index + lane_index_change;
+
     }
-    dst_lane_index = my_lane_index + lane_index_change;
   }
 
   return prev_state != current_state;
@@ -369,36 +391,6 @@ void BehaviorLayer::process_step (
   {
     std::vector<double> next_s_vals, next_d_vals;
 
-    if (current_state == CarState::MOVE_FORWARD)
-    {
-      calc_move_forward(next_s_vals, next_d_vals, car_state);
-    }
-    else if (
-      current_state == CarState::CHANGING_LEFT ||
-      current_state == CarState::CHANGING_RIGHT
-    )
-    {
-      int my_lane_index = get_lane_index (car_state[3]);
-      calc_change_lane(
-        next_s_vals,
-        next_d_vals,
-        car_state,
-        my_lane_index + (current_state == CarState::CHANGING_LEFT?-1:1)
-      );
-    }
-    else if (current_state == CarState::FOLLOW)
-    {
-      calc_move_forward(
-        next_s_vals,
-        next_d_vals,
-        car_state,
-        get_front_car_speed(
-          car_state,
-          sensor_data
-        )
-      );
-    }
-
     std::vector<double> splined_waypoints_s;
     std::vector<double> splined_waypoints_x;
     std::vector<double> splined_waypoints_y;
@@ -411,20 +403,60 @@ void BehaviorLayer::process_step (
       map_waypoints_x,
       map_waypoints_y
     );
+    double curv = getMaxCurvatureOfRoad(car_s, car_d, 50, splined_waypoints_s, splined_waypoints_x, splined_waypoints_y);
+    double curv_max_speed = std::sqrt(2.0 / curv);// / 0.44704;
+    double allowed_forward_speed = std::min(forward_speed, curv_max_speed);
+//    if (curv > 0.001 ){
+//      allowed_forward_speed -= (curv - 0.001) * 5 / 0.007;
+//    }
+std::cout << "--- curvature: " << curv << " as: " << allowed_forward_speed << std::endl;
+
+    if (current_state == CarState::MOVE_FORWARD)
+    {
+      calc_move_forward(next_s_vals, next_d_vals, car_state, allowed_forward_speed);
+    }
+    else if (
+      current_state == CarState::CHANGING_LEFT ||
+      current_state == CarState::CHANGING_RIGHT
+    )
+    {
+      calc_change_lane(
+        next_s_vals,
+        next_d_vals,
+        car_state,
+        dst_lane_index
+      );
+    }
+    else if (current_state == CarState::FOLLOW)
+    {
+      calc_move_forward(
+        next_s_vals,
+        next_d_vals,
+        car_state,
+        std::min(allowed_forward_speed, get_front_car_speed(
+          car_state,
+          sensor_data
+        ))
+      );
+    }
+
+
     std::vector<double> new_xs, new_ys;
+
     for (int i=0; i<next_s_vals.size(); i++) {
-std::cout << "i: " << i << " s: " << next_s_vals[i] << " d: " << next_d_vals[i] << std::endl;
+//std::cout << "i: " << i << " s: " << next_s_vals[i] << " d: " << next_d_vals[i] << std::endl;
       std::vector<double> xy = getXY(next_s_vals[i], next_d_vals[i], splined_waypoints_s, splined_waypoints_x, splined_waypoints_y);
       new_xs.push_back(xy[0]);
       new_ys.push_back(xy[1]);
     }
+    for(int i=0; i<5; i++)
+    {
+      TrajectorySmoother::smooth_trajectory(new_xs);
+      TrajectorySmoother::smooth_trajectory(new_ys);
+    }
 
     TrajectorySmoother::merge_trajectoies(next_x_vals, previous_path_x, new_xs, 100);
-    TrajectorySmoother::smooth_trajectory(next_x_vals);
-    TrajectorySmoother::smooth_trajectory(next_x_vals);
     TrajectorySmoother::merge_trajectoies(next_y_vals, previous_path_y, new_ys, 100);
-    TrajectorySmoother::smooth_trajectory(next_y_vals);
-    TrajectorySmoother::smooth_trajectory(next_y_vals);
   }
   else
   {
@@ -453,7 +485,7 @@ void BehaviorLayer::calc_move_forward (
     next_s_vals,
     next_d_vals,
     car_state,
-    0.44704 * 48
+    forward_speed
   );
 }
 

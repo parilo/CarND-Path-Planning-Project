@@ -141,43 +141,70 @@ int main() {
 
 
              double T = 5;
-             cout <<
-               "car: s: " << car_s <<
-               " d: " << car_d <<
-               " v: " << car_speed <<
-               // " a: " << car_accel <<
-               // " prev path: " << previous_path_x.size() <<
-               // " m s: " << maneuver_planner.get_step() <<
-               // " passed steps: " << passed_steps <<
-               // " passed s: " << maneuver_planner.get_passed_s() <<
-               // " manuver t: " << maneuver_planner.get_t() <<
-               // " steps left: " << maneuver_planner.get_steps_left() <<
-               endl;
+//             cout <<
+//               "car: s: " << car_s <<
+//               " d: " << car_d <<
+//               " v: " << car_speed <<
+//               // " a: " << car_accel <<
+//               // " prev path: " << previous_path_x.size() <<
+//               // " m s: " << maneuver_planner.get_step() <<
+//               // " passed steps: " << passed_steps <<
+//               // " passed s: " << maneuver_planner.get_passed_s() <<
+//               // " manuver t: " << maneuver_planner.get_t() <<
+//               // " steps left: " << maneuver_planner.get_steps_left() <<
+//               endl;
 
             json msgJson;
 
             vector<double> next_x_vals;
           	vector<double> next_y_vals;
 
-            if (iteration == -1) {
-              vector<double> xy = getXY(6800, 6.2, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-              for(int i=0;i<50;i++)
-              {
-                next_x_vals.push_back(xy[0]);
-                next_y_vals.push_back(xy[1]);
-              }
-            } else {
-              behavior_layer.process_step (
-                next_x_vals,
-                next_y_vals,
-                {car_x, car_y, car_s, car_d, car_yaw, 0.44704 * car_speed},
-                previous_path_x,
-                previous_path_y,
-                sensor_fusion
-              );
-            }
+//            if (iteration == -1) {
+//              vector<double> xy = getXY(6800, 6.2, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+//              for(int i=0;i<50;i++)
+//              {
+//                next_x_vals.push_back(xy[0]);
+//                next_y_vals.push_back(xy[1]);
+//              }
+//            } else {
 
-            iteration++;
+//            if (previous_path_x.size() > 10){
+
+//              vector<double> f_next_x_vals;
+//              vector<double> f_next_y_vals;
+//              vector<double> f_car_state = {
+//                car_x,
+//                car_y,
+//                car_s,
+//                car_d,
+//                car_yaw,
+//                0.44704 * car_speed
+//              };
+
+//              behavior_layer.process_step (
+//                f_next_x_vals,
+//                f_next_y_vals,
+//                ,
+//                previous_path_x,
+//                previous_path_y,
+//                sensor_fusion
+//              );
+
+//            } else {
+
+            behavior_layer.process_step (
+              next_x_vals,
+              next_y_vals,
+              {car_x, car_y, car_s, car_d, car_yaw, 0.44704 * car_speed},
+              previous_path_x,
+              previous_path_y,
+              sensor_fusion
+            );
+
+//            }
+
+//            }
+//            iteration++;
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
             msgJson["next_x"] = next_x_vals;

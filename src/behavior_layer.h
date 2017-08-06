@@ -30,10 +30,11 @@ class BehaviorLayer {
  private:
 
   const double safety_time_to_collision = 10;
-  const double safety_change_lane_gap = 8;
-  const double safety_front_car_dist = 20;
+  const double safety_change_lane_gap = 10;
+  const double safety_front_car_dist = 25;
   const int maneuver_min_steps_count = 150;
-  const int maneuver_recalc_steps_count = 100;
+  const int maneuver_recalc_steps_count = 140;
+  double forward_speed = 0.44704 * 46;
 
   std::vector<double> map_waypoints_s;
   std::vector<double> map_waypoints_x;

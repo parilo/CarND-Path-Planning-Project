@@ -34,13 +34,15 @@ std::cout << "accel steps: " << s_steps  << std::endl;
 //  int s_maneuver_size = std::max(s_steps, maneuver_min_steps_count);
 
   // d part of maneuver
-  double d_maneuver_time = fabs(start_d - end_d);
+  double d_maneuver_time = fabs(start_d - end_d) * 2.0;
 std::cout << "start_d: " << start_d << " end_d: " << end_d << " t: " << d_maneuver_time << std::endl;
 //  double d_maneuver_time = 2.0;
   int d_steps = 0;
   d_planner.start_new_maneuver(start_d);
+  if (current_s_dot > 10.0){
   d_steps += d_planner.add_change_coord(end_d, d_maneuver_time);
 std::cout << "d steps: " << d_steps << " t: " << d_maneuver_time << std::endl;
+  }
   if (d_steps < maneuver_min_steps_count)
   {
     d_steps += d_planner.add_constant_coord(maneuver_min_steps_count - d_steps);

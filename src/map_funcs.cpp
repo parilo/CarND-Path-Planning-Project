@@ -143,6 +143,41 @@ vector<double> getXY(
 
 }
 
+double getMaxCurvatureOfRoad(
+  double s,
+  double d,
+  double length,
+  const vector<double>& maps_s,
+  const vector<double>& maps_x,
+  const vector<double>& maps_y
+)
+{
+  int prev_wp = -1;
+
+  while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) ))
+  {
+    prev_wp++;
+  }
+
+  double curvature = 0;
+  for (int i=prev_wp; i<maps_x.size()-2; i++){
+    if (maps_s[i] > s + length) break;
+    double ds = maps_s[i+1] - maps_s[i];
+    double xd = (maps_x[i+1] - maps_x[i]) / ds;
+    double xd2 = (maps_x[i+2] - 2 * maps_x[i+1] + maps_x[i]) / ds / ds;
+    double yd = (maps_y[i+1] - maps_y[i]) / ds;
+    double yd2 = (maps_y[i+2] - 2 * maps_y[i+1] + maps_y[i]) / ds / ds;
+
+    double cur_curvature = fabs(xd * yd2 - yd * xd2) / std::pow(xd*xd + yd*yd, 1.5);
+    if (cur_curvature > curvature) {
+      curvature = cur_curvature;
+    }
+  }
+
+  return curvature;
+
+}
+
 void getSplinedMapPoints(
   double s,
   std::vector<double>& splined_maps_s,
@@ -250,110 +285,4 @@ void getSplinedMapPoints(
     splined_maps_x.push_back (x(t));
     splined_maps_y.push_back (y(t));
   }
-}
-
-// Fit a polynomial.
-// Adapted from
-// https://github.com/JuliaMath/Polynomials.jl/blob/master/src/Polynomials.jl#L676-L716
-Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
-                        int order) {
-  assert(xvals.size() == yvals.size());
-  assert(order >= 1 && order <= xvals.size() - 1);
-  Eigen::MatrixXd A(xvals.size(), order + 1);
-
-  for (int i = 0; i < xvals.size(); i++) {
-    A(i, 0) = 1.0;
-  }
-
-  for (int j = 0; j < xvals.size(); j++) {
-    for (int i = 0; i < order; i++) {
-      A(j, i + 1) = A(j, i) * xvals(j);
-    }
-  }
-
-  auto Q = A.householderQr();
-  auto result = Q.solve(yvals);
-  return result;
-}
-
-// Evaluate a polynomial.
-double polyeval(Eigen::VectorXd coeffs, double x) {
-  double result = 0.0;
-  for (int i = 0; i < coeffs.size(); i++) {
-    result += coeffs[i] * pow(x, i);
-  }
-  return result;
-}
-
-vector<double> getXYPolyfit(
-  double s,
-  double d,
-  const vector<double>& maps_s,
-  const vector<double>& maps_x,
-  const vector<double>& maps_y
-)
-{
-
-  int prev_wp = -1;
-
-	while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) ))
-	{
-		prev_wp++;
-	}
-
-  int approx_edges = 3;
-  int num_points = approx_edges * 2 + 1;
-  Eigen::VectorXd T(num_points), S(num_points), X(num_points), Y(num_points);
-  for(
-    int i=prev_wp - approx_edges, vi = 0;
-    i<(prev_wp + approx_edges);
-    i++, vi++
-  ){
-    int pi = (i)%maps_x.size();
-    T[vi] = i;
-    S[vi] = maps_s[pi];
-    X[vi] = maps_x[pi];
-    Y[vi] = maps_y[pi];
-  }
-
-  auto coeffs_s = polyfit(T, S, 3);
-  auto coeffs_x = polyfit(T, X, 3);
-  auto coeffs_y = polyfit(T, Y, 3);
-
-  std::vector<double> approx_maps_s;
-  std::vector<double> approx_maps_x;
-  std::vector<double> approx_maps_y;
-
-  double t_step = 1 / 30.0;
-  for (
-    double t = -1;
-    t < 1;
-    t += t_step
-  ){
-    approx_maps_s.push_back (polyeval(coeffs_s, t));
-    approx_maps_x.push_back (polyeval(coeffs_x, t));
-    approx_maps_y.push_back (polyeval(coeffs_y, t));
-  }
-
-  // int prev_wp2 = (prev_wp-1)%maps_x.size();
-	// int wp2 = (prev_wp+1)%maps_x.size();
-
-  // std::vector<double> T(3), S(3), X(3), Y(3);
-  // T[0]=-1; T[1]=0; T[2]=1;
-  // S[0]=maps_s[prev_wp2]; S[1]=maps_s[prev_wp]; S[2]=maps_s[wp2];
-  // X[0]=maps_x[prev_wp2]; X[1]=maps_x[prev_wp]; X[2]=maps_x[wp2];
-  // Y[0]=maps_y[prev_wp2]; Y[1]=maps_y[prev_wp]; Y[2]=maps_y[wp2];
-
-  // Eigen::VectorXd ptsx_car_frame (ptsx.size());
-  // Eigen::VectorXd ptsy_car_frame (ptsy.size());
-  // for (int i=0; i<ptsx.size(); i++) {
-  //   double x = ptsx[i] - px;
-  //   double y = ptsy[i] - py;
-  //   ptsx_car_frame [i] = x * cos (psi) + y * sin (psi);
-  //   ptsy_car_frame [i] = - x * sin (psi) + y * cos (psi);
-  // }
-  //
-  // auto coeffs = polyfit(ptsx_car_frame, ptsy_car_frame, 3);
-
-   return getXY(s, d, approx_maps_s, approx_maps_x, approx_maps_y);
 }
