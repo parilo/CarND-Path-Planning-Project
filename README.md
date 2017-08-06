@@ -2,11 +2,11 @@
 
 [![Highway driving car autopilot planner demo](http://img.youtube.com/vi/v4lRn_nQXrE/0.jpg)](https://www.youtube.com/watch?v=v4lRn_nQXrE)
 
-This is project 1 of Term 3 of Udacity Self-Driving Car Nanodegree. The goal of the project is to plan maneuvers on highway in randomized environment. Environment contains other cars. Autopilot needs to be able to plan entire loop of 4.32 miles without experience total acceleration over 10 m/s^2, jerk that is greater than 10 m/s^3, other cars collisions and speed limit of 50 mph violations.
+This is project 1 of Term 3 of Udacity Self-Driving Car Nanodegree. The goal of the project is to plan maneuvers on highway in randomized environment. Environment contains other cars. Autopilot needs to be able to drive entire loop of 4.32 miles without experience total acceleration over 10 m/s^2, jerk that is greater than 10 m/s^3, other cars collisions and speed limit of 50 mph violations.
 
 ## Overview
 
-This highway planner which purpose is produce smooth trajectories for acceleration, deceleration, change lane and front car following maneuvers along with making decisions in changing highway environment is complex program that may contain following modules:
+This highway planner which purpose is produce smooth trajectories for acceleration, deceleration, change lane and front car following maneuvers along with making decisions in changing highway environment contain following modules:
 
 - Trajectory generator
 - Maneuver planner
@@ -22,9 +22,9 @@ s(t) = a_0 + a_1 * t + a_2 * t**2 + a_3 * t**3 + a_4 * t**4 + a_5 * t**5
 a_x - parameters of the trajectory
 ```
 
-Dealing with JMT in common is not an easy thing. But if your task to calculate parameters of JMT for given start coordinate, start velocity, start acceleration, end desired coordinate, desired velocity, desired acceleration and T - maneuver time the problem have solution. And I use it for other maneuvers calculations.
+Dealing with JMT in common is not an easy thing. But if your task to calculate parameters of JMT for given start coordinate, start velocity, start acceleration, end desired coordinate, desired velocity, desired acceleration and T - maneuver time the problem have well known solution. And I use it for other maneuvers calculations.
 
-For construction 2d highway maneuvers like acceleration and change line we need to solve two different 1d problems with JMT. First is acceleration trajectory which begins from start coordinate, start velocity, start acceleration and ends with some desired velocity and acceleration. Note that we don't know T - time of whole maneuver and end coordinate S. We need to choose S and T in order to have  trajectory with monotonely changing speed. To acheve this I've written simple optimizer that tries to brouteforce S and T in order to get monotonely changing speed trajectory. Important thing is that we need to start optimization from some close to solution point. I have separated start points for acceleration and deceleration.
+For construction 2d highway maneuvers like acceleration and change line we need to solve two different 1d problems with JMT. First is acceleration trajectory which begins from start coordinate, start velocity, start acceleration and ends with some desired velocity and acceleration. Note that we don't know T - time of whole maneuver and end coordinate S. We need to choose S and T in order to have  trajectory with monotonely changing speed. To acheve this I've written simple optimizer that tries to brouteforce S and T in order to get monotonely changing speed trajectory. Important thing is that we need to start optimization from some point close to solution. I have separated start points for acceleration and deceleration.
 
 ```
   double T = fabs(end_v - start_v) / 5.0;
@@ -58,18 +58,18 @@ Optimizer fixes T and brouteforce S. On every step it check wether trajectory ex
   // see jmt.cpp
 ```
 
-Second 1d trajectory we need is changing coordinate trajectory. It helps with keep and change lane trajectories. Here we know end coordinate and we only need to reasonably choose T - maneuver time. So here we just may use JMT parameters generation function.
+Second 1d trajectory we need is changing coordinate trajectory. It helps with keep and change lane trajectories. Here we know end coordinate and we only need to reasonably choose T - maneuver time for example based on coordinate change distance. So here we just may use JMT parameters generation function.
 
 ## Maneuver planner
 
 Using 1d trajectories we may construct 2d maneuvers like
 
-* Acceleration 
- - 1d acceleration along the road
- - lane position adjusting perpendicularly the road
-* Change lane
- - keeping velocity along the road
- - changing coordinate perpendicularly the road
+- Acceleration 
+   - 1d acceleration along the road
+   - lane position adjusting perpendicularly the road
+- Change lane
+   - keeping velocity along the road
+   - changing coordinate perpendicularly the road
 
 ```
 class ManeuverPlanner1d in maneuver_planner_1d.cpp - helps to construct 1d maneuvers
@@ -81,6 +81,7 @@ class ManeuverPlanner in maneuver_planner.cpp - for construction of 2d maneuvers
 All maneuvers calculations are done in [Frenet frame](https://en.wikipedia.org/wiki/Frenet%E2%80%93Serret_formulas). Frenet frame for curved road is coordinates (s, d). 's' is coordinate along the road and d is perpendiculary coordinate. After maneuver calculation in (s, d) we need to translate it into world space (x, y). We have "getXY" function in map\_funcs.cpp for it. It receives (s, d) coordinates and its local keypoints (number of corresponding x, y, s) and provides (x, y) of maneuver point. The map of the highway keypoints is in data/highway_map.txt. Each keypoint in the list contains  \[x,y,s,dx,dy\] values. x and y are the waypoint's map coordinate position, the s value is the distance along the road to get to that waypoint in meters, the dx and dy values define the unit normal vector pointing outward of the highway loop. The highway's waypoints loop around so the frenet s value, distance along the road, goes from 0 to 6945.554. Text file keypoint are very sparsed and using them as is leads to broken curves. In order to fix broken trajectories we need to interpolate smooth keypoints curve between map's keypoints and use it for (s, d) -> (x, y) conversion. Such interpolation is done with [splines](http://kluge.in-chemnitz.de/opensource/spline/) in "getSplinedMapPoints" function in map\_funcs.cpp.
 
 Frenet frame is not inertial frame for a road. So we also need to calculate future curvature of the road to slow the car on the curves to decrease centrifugal acceleration. See "getMaxCurvatureOfRoad" function in map\_funcs.cpp.
+
 
 ##Behavioral layer
 
@@ -99,8 +100,8 @@ _ | Start | Forward | Follow | Change Left | Change Right
 Start          | _ | + | _ | _ | _
 Forward        | _ | _ | + | + | +
 Follow         | _ | + | _ | + | +
-Change Left    | + | _ | _ | _ | _
-Change Right   | + | _ | _ | _ | _
+Change Left    | _ | + | _ | _ | _
+Change Right   | _ | + | _ | _ | _
 
 Desisions about to start transitions make using 3 cost functions:
 
@@ -129,7 +130,7 @@ const int maneuver_recalc_steps_count = 140;
 double forward_speed = 0.44704 * 46; // m/s
 ```
 
-After calculation of new trajectory we need to properly translate car from old trajectory to new. So as car drives in parallel to new maneuver calculation we need to keep small amount of first steps (10) from an old trajectory and linearly transite to new trajectory. Also we need to smooth new maneuver before application. See smoothing functions in trajectory_smoother.cpp
+After calculation of new trajectory we need to properly translate car from old trajectory to new. So as car drives in parallel to new maneuver calculation we need to keep small amount of first steps (10) from an old trajectory and linearly transite to new trajectory. Also we need to smooth new maneuver before application. See smoothing functions in trajectory_smoother.cpp. For other detalis please see code and copmments inside
 
 ## Basic Build Instructions
 
