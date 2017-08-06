@@ -9,7 +9,7 @@
 #include "behavior_layer.h"
 // #include "jmt.h"
 // #include "maneuver_planner.h"
-// #include "map_funcs.h"
+ #include "map_funcs.h"
 // #include "trajectory_smoother.h"
 
 using namespace std;
@@ -76,18 +76,19 @@ int main() {
     map_waypoints_y
   );
 
-  // ManeuverPlanner maneuver_planner;
+  int iteration = 0;
 
   h.onMessage([
-    // &map_waypoints_x,
-    // &map_waypoints_y,
-    // &map_waypoints_s,
+     &map_waypoints_x,
+     &map_waypoints_y,
+     &map_waypoints_s,
     // &map_waypoints_dx,
     // &map_waypoints_dy,
     // &jmt,
     // &prev_car_speed,
     // &maneuver_planner
-    &behavior_layer
+    &behavior_layer,
+    &iteration
     ] (
       uWS::WebSocket<uWS::SERVER> ws,
       char *data,
@@ -138,33 +139,45 @@ int main() {
             //     endl;
             // }
 
+
+             double T = 5;
+             cout <<
+               "car: s: " << car_s <<
+               " d: " << car_d <<
+               " v: " << car_speed <<
+               // " a: " << car_accel <<
+               // " prev path: " << previous_path_x.size() <<
+               // " m s: " << maneuver_planner.get_step() <<
+               // " passed steps: " << passed_steps <<
+               // " passed s: " << maneuver_planner.get_passed_s() <<
+               // " manuver t: " << maneuver_planner.get_t() <<
+               // " steps left: " << maneuver_planner.get_steps_left() <<
+               endl;
+
             json msgJson;
 
             vector<double> next_x_vals;
           	vector<double> next_y_vals;
 
-            behavior_layer.process_step (
-              next_x_vals,
-              next_y_vals,
-              {car_x, car_y, car_s, car_d, car_yaw, 0.44704 * car_speed},
-              previous_path_x,
-              previous_path_y,
-              sensor_fusion
-            );
+            if (iteration == -1) {
+              vector<double> xy = getXY(6800, 6.2, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+              for(int i=0;i<50;i++)
+              {
+                next_x_vals.push_back(xy[0]);
+                next_y_vals.push_back(xy[1]);
+              }
+            } else {
+              behavior_layer.process_step (
+                next_x_vals,
+                next_y_vals,
+                {car_x, car_y, car_s, car_d, car_yaw, 0.44704 * car_speed},
+                previous_path_x,
+                previous_path_y,
+                sensor_fusion
+              );
+            }
 
-            // double T = 5;
-            // cout <<
-            //   "car: s: " << car_s <<
-            //   " d: " << car_d <<
-            //   " v: " << car_speed <<
-            //   // " a: " << car_accel <<
-            //   // " prev path: " << previous_path_x.size() <<
-            //   // " m s: " << maneuver_planner.get_step() <<
-            //   // " passed steps: " << passed_steps <<
-            //   // " passed s: " << maneuver_planner.get_passed_s() <<
-            //   // " manuver t: " << maneuver_planner.get_t() <<
-            //   // " steps left: " << maneuver_planner.get_steps_left() <<
-            //   endl;
+            iteration++;
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
             msgJson["next_x"] = next_x_vals;

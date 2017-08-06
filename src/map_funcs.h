@@ -25,9 +25,11 @@ std::vector<double> getXY(
   const std::vector<double>& maps_y
 );
 
-std::vector<double> getXYSplined(
+void getSplinedMapPoints(
   double s,
-  double d,
+  std::vector<double>& splined_maps_s,
+  std::vector<double>& splined_maps_x,
+  std::vector<double>& splined_maps_y,
   const std::vector<double>& maps_s,
   const std::vector<double>& maps_x,
   const std::vector<double>& maps_y

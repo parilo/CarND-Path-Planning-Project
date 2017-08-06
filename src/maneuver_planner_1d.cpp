@@ -53,6 +53,7 @@ int ManeuverPlanner1d::add_change_coord(
 )
 {
   int maneuver_steps_count = maneuver_time / maneuver_step_dt;
+std::cout << "change coord: steps: " << maneuver_steps_count << " t: " << maneuver_time << std::endl;
   jmt.generate_points(
     coords,
     coords_dot,
@@ -86,28 +87,82 @@ int ManeuverPlanner1d::add_constant_coord(
 }
 
 int ManeuverPlanner1d::add_acceleration(
-  double end_coord,
+//  double end_coord,
   double end_coord_dot,
-  double maneuver_time
+//  double maneuver_time
+  int max_steps_count
 )
 {
-  int maneuver_steps_count = maneuver_time / maneuver_step_dt;
-  jmt.generate_points(
+//  int maneuver_steps_count = maneuver_time / maneuver_step_dt;
+//  jmt.generate_points(
+//    coords,
+//    coords_dot,
+//    coords_dot_dot,
+//    {next_maneuver_start_coord, next_maneuver_start_coord_dot, next_maneuver_start_coord_dot_dot},
+//    {end_coord, end_coord_dot, 0},
+//    maneuver_time,
+//    maneuver_steps_count,
+//    maneuver_step_dt // dt for calc steps
+//  );
+
+//  int maneuver_steps_count = jmt.generate_points(
+//    coords,
+//    coords_dot,
+//    coords_dot_dot,
+//    next_maneuver_start_coord,
+//    next_maneuver_start_coord_dot,
+//    next_maneuver_start_coord_dot_dot,
+//    end_coord_dot,
+//    0,
+//    max_steps_count,
+//    maneuver_step_dt // dt for calc steps
+//  );
+
+//  std::vector<double> p;
+//  jmt.generate_parameters_accelerate(
+//    p,
+//    next_maneuver_start_coord,
+//    next_maneuver_start_coord_dot,
+//    next_maneuver_start_coord_dot_dot,
+//    end_coord_dot,
+//    0,
+//    maneuver_step_dt
+//  );
+
+  int steps = jmt.generate_points_accelerate(
     coords,
     coords_dot,
     coords_dot_dot,
-    {next_maneuver_start_coord, next_maneuver_start_coord_dot, next_maneuver_start_coord_dot_dot},
-    {end_coord, end_coord_dot, 0},
-    maneuver_time,
-    maneuver_steps_count,
-    maneuver_step_dt // dt for calc steps
+    next_maneuver_start_coord,
+    next_maneuver_start_coord_dot,
+    next_maneuver_start_coord_dot_dot,
+    end_coord_dot,
+    0,
+    maneuver_step_dt,
+    max_steps_count
   );
 
-  next_maneuver_start_coord = end_coord;
-  next_maneuver_start_coord_dot = end_coord_dot;
-  next_maneuver_start_coord_dot_dot = 0;
+//  std::vector<double>& coords,
+//  std::vector<double>& coords_dot,
+//  std::vector<double>& coords_dot_dot,
+//  double start,
+//  double start_v,
+//  double start_a,
+//  double end_v,
+//  double end_a,
+//  double dt,
+//  int steps_count
 
-  return maneuver_steps_count;
+
+//  next_maneuver_start_coord = end_coord;
+  if (steps > 0)
+  {
+    next_maneuver_start_coord = coords.back();
+    next_maneuver_start_coord_dot = coords_dot.back();
+    next_maneuver_start_coord_dot_dot = coords_dot_dot.back();
+  }
+
+  return steps; //maneuver_steps_count;
 }
 
 int ManeuverPlanner1d::add_constant_speed(
@@ -134,60 +189,13 @@ void ManeuverPlanner1d::update_maneuver(
   maneuver_t += step_passed * 0.02;
 }
 
-void ManeuverPlanner1d::get_next_coords (std::vector<double>& coords){
-  coords.resize(this->coords.size() - maneuver_step);
-  std::copy(this->coords.begin() + maneuver_step, this->coords.end(), coords.begin());
+void ManeuverPlanner1d::get_next_coords (
+  int steps_count,
+  std::vector<double>& coords
+)
+{
+  coords.resize(steps_count);
+  std::copy(this->coords.begin(), this->coords.begin() + steps_count, coords.begin());
+//  coords.resize(this->coords.size() - maneuver_step);
+//  std::copy(this->coords.begin() + maneuver_step, this->coords.end(), coords.begin());
 }
-
-
-
-
-
-
-
-
-
-
-
-
-// void ManeuverPlanner1d::calc_maneuver(
-//   double start_coord
-// ){
-//   double start_v = 0;
-//   double start_a = 0;
-//   if(coords.size() > 0 && maneuver_step < maneuver_steps_count){
-//     start_v = coords_dot [maneuver_step];
-//     start_a = coords_dot_dot [maneuver_step];
-// //    std::cout << "new maneuver: v: " << start_v << " a: " << start_a << std::endl;
-//   }
-//
-//   maneuver_step = 0;
-//   maneuver_start_coord = start_coord;
-//   maneuver_current_coord = start_coord;
-//   maneuver_t = 0;
-//
-//   double end_t = 5; // 5 sec for maneuver
-//   double end_v = 0.44704 * 48;
-//   double end_coord = start_coord + (start_v + end_v) * 0.5 * end_t;
-//
-//   jmt.generate_points(
-//     coords,
-//     coords_dot,
-//     coords_dot_dot,
-//     {start_coord, start_v, start_a},
-//     {end_coord, end_v, 0},
-//     end_t,
-//     maneuver_steps_count,
-//     maneuver_step_dt // dt for calc steps
-//   );
-//
-// //  for(int i=0; i<coords.size(); i++) {
-// //    std::cout <<
-// //      "m i: " << i <<
-// //      " x: " << coords [i] <<
-// //      " v: " << coords_dot [i] <<
-// //      " a: " << coords_dot_dot [i] <<
-// //      std::endl;
-// //  }
-//
-// }

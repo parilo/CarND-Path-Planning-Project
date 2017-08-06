@@ -23,9 +23,10 @@ class ManeuverPlanner1d {
   );
 
   int add_acceleration(
-    double end_coord,
+  //  double end_coord,
     double end_coord_dot,
-    double maneuver_time
+  //  double maneuver_time
+    int max_steps_count
   );
 
   int add_constant_speed(
@@ -43,7 +44,10 @@ class ManeuverPlanner1d {
     double& current_coord_dot_dot
   );
 
-  void get_next_coords (std::vector<double>& coords);
+  void get_next_coords (
+    int steps_count,
+    std::vector<double>& coords
+  );
 
 
 

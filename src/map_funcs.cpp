@@ -1,3 +1,4 @@
+#include <iostream>
 #include <math.h>
 #include "spline.h"
 #include "Eigen-3.3/Eigen/Core"
@@ -142,12 +143,14 @@ vector<double> getXY(
 
 }
 
-vector<double> getXYSplined(
+void getSplinedMapPoints(
   double s,
-  double d,
-  const vector<double>& maps_s,
-  const vector<double>& maps_x,
-  const vector<double>& maps_y
+  std::vector<double>& splined_maps_s,
+  std::vector<double>& splined_maps_x,
+  std::vector<double>& splined_maps_y,
+  const std::vector<double>& maps_s,
+  const std::vector<double>& maps_x,
+  const std::vector<double>& maps_y
 )
 {
 
@@ -158,16 +161,77 @@ vector<double> getXYSplined(
 		prev_wp++;
 	}
 
-  int prev_wp3 = (prev_wp-2)%maps_x.size();
-  int prev_wp2 = (prev_wp-1)%maps_x.size();
-	int wp2 = (prev_wp+1)%maps_x.size();
-  int wp3 = (prev_wp+2)%maps_x.size();
+  std::cout << "splined: car_s: " << s << " prev_wp: " << prev_wp << std::endl;
 
-  std::vector<double> T(5), S(5), X(5), Y(5);
-  T[0]=-2; T[1]=-1; T[2]=0; T[3]=1; T[4]=2;
-  S[0]=maps_s[prev_wp3]; S[1]=maps_s[prev_wp2]; S[2]=maps_s[prev_wp]; S[3]=maps_s[wp2]; S[4]=maps_s[wp3];
-  X[0]=maps_x[prev_wp3]; X[1]=maps_x[prev_wp2]; X[2]=maps_x[prev_wp]; X[3]=maps_x[wp2]; X[4]=maps_x[wp3];
-  Y[0]=maps_y[prev_wp3]; Y[1]=maps_y[prev_wp2]; Y[2]=maps_y[prev_wp]; Y[3]=maps_y[wp2]; Y[4]=maps_y[wp3];
+  static const int spline_edge_length = 4;
+  static const double track_length = 6945.554;
+  int spline_input_points = spline_edge_length * 2 + 1;
+
+  std::vector<double> T(spline_input_points),
+    S(spline_input_points),
+    X(spline_input_points),
+    Y(spline_input_points);
+
+  int maps_points_size = maps_x.size();
+  for(int i=0; i<spline_input_points; i++)
+  {
+    T[i] = i - spline_edge_length;
+    int maps_point_outer_index = prev_wp + i - spline_edge_length;
+    int maps_point_index = maps_point_outer_index % maps_points_size;
+    if (maps_point_index < 0) maps_point_index += maps_points_size;
+
+    X[i] = maps_x[maps_point_index];
+    Y[i] = maps_y[maps_point_index];
+
+    if (maps_point_outer_index < 0)
+    {
+      S[i] = maps_s[maps_point_index] - track_length;
+    }
+    else if (maps_point_outer_index >= maps_points_size)
+    {
+      S[i] = maps_s[maps_point_index] + track_length;
+    }
+    else
+    {
+      S[i] = maps_s[maps_point_index];
+    }
+  }
+
+  std::cout << "T: ";
+  for(int i=0; i<spline_input_points; i++){
+    std::cout << T[i] << " ";
+  }
+  std::cout << std::endl;
+
+  std::cout << "S: ";
+  for(int i=0; i<spline_input_points; i++){
+    std::cout << S[i] << " ";
+  }
+  std::cout << std::endl;
+
+  std::cout << "X: ";
+  for(int i=0; i<spline_input_points; i++){
+    std::cout << X[i] << " ";
+  }
+  std::cout << std::endl;
+
+  std::cout << "Y: ";
+  for(int i=0; i<spline_input_points; i++){
+    std::cout << Y[i] << " ";
+  }
+  std::cout << std::endl;
+
+//  int prev_wp4 = (prev_wp-3)%maps_x.size();
+//  int prev_wp3 = (prev_wp-2)%maps_x.size();
+//  int prev_wp2 = (prev_wp-1)%maps_x.size();
+//	int wp2 = (prev_wp+1)%maps_x.size();
+//  int wp3 = (prev_wp+2)%maps_x.size();
+//  int wp4 = (prev_wp+3)%maps_x.size();
+
+//  T[0]=-3; T[1]=-2; T[2]=-1; T[3]=0; T[4]=1; T[5]=2; T[6]=3;
+//  S[0]=maps_s[prev_wp4]; S[1]=maps_s[prev_wp3]; S[2]=maps_s[prev_wp2]; S[3]=maps_s[prev_wp]; S[4]=maps_s[wp2]; S[5]=maps_s[wp3]; S[6]=maps_s[wp4];
+//  X[0]=maps_x[prev_wp4]; X[1]=maps_x[prev_wp3]; X[2]=maps_x[prev_wp2]; X[3]=maps_x[prev_wp]; X[4]=maps_x[wp2]; X[5]=maps_x[wp3]; X[6]=maps_x[wp4];
+//  Y[0]=maps_y[prev_wp4]; Y[1]=maps_y[prev_wp3]; Y[2]=maps_y[prev_wp2]; Y[3]=maps_y[prev_wp]; Y[4]=maps_y[wp2]; Y[5]=maps_y[wp3]; Y[6]=maps_y[wp4];
 
   tk::spline s_spline;
   s_spline.set_points(T,S);
@@ -176,22 +240,16 @@ vector<double> getXYSplined(
   tk::spline y;
   y.set_points(T,Y);
 
-  std::vector<double> splined_maps_s;
-  std::vector<double> splined_maps_x;
-  std::vector<double> splined_maps_y;
-
-  double t_step = 1 / 30.0;
+  double t_step = 1.0 / 30.0 / spline_input_points;
   for (
-    double t = -1;
-    t < 1;
+    double t = -double(spline_edge_length);
+    t < double(spline_edge_length);
     t += t_step
   ){
     splined_maps_s.push_back (s_spline(t));
     splined_maps_x.push_back (x(t));
     splined_maps_y.push_back (y(t));
   }
-
-   return getXY(s, d, splined_maps_s, splined_maps_x, splined_maps_y);
 }
 
 // Fit a polynomial.

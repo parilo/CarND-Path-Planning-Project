@@ -30,8 +30,10 @@ class BehaviorLayer {
  private:
 
   const double safety_time_to_collision = 10;
-  const double safety_change_lane_gap = 10;
-  const double safety_front_car_dist = 30;
+  const double safety_change_lane_gap = 8;
+  const double safety_front_car_dist = 20;
+  const int maneuver_min_steps_count = 150;
+  const int maneuver_recalc_steps_count = 100;
 
   std::vector<double> map_waypoints_s;
   std::vector<double> map_waypoints_x;
@@ -68,21 +70,21 @@ class BehaviorLayer {
   );
 
   void calc_move_forward (
-    std::vector<double>& next_x_vals,
-    std::vector<double>& next_y_vals,
+    std::vector<double>& next_s_vals,
+    std::vector<double>& next_d_vals,
     const std::vector<double>& car_state
   );
 
   void calc_move_forward (
-    std::vector<double>& next_x_vals,
-    std::vector<double>& next_y_vals,
+    std::vector<double>& next_s_vals,
+    std::vector<double>& next_d_vals,
     const std::vector<double>& car_state,
     double dst_speed
   );
 
   void calc_change_lane (
-    std::vector<double>& next_x_vals,
-    std::vector<double>& next_y_vals,
+    std::vector<double>& next_s_vals,
+    std::vector<double>& next_d_vals,
     const std::vector<double>& car_state,
     int new_lane_index
   );
