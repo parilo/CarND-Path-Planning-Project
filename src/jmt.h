@@ -23,21 +23,7 @@ class JMT {
     int steps_count
   );
 
-//  int generate_points_change_coord(
-//    std::vector<double>& coords,
-//    std::vector<double>& coords_dot,
-//    std::vector<double>& coords_dot_dot,
-//    double start,
-//    double start_v,
-//    double start_a,
-//    double end,
-//    double end_v,
-//    double end_a,
-//    double dt,
-//    int steps_count
-//  );
-
-  int generate_points(
+  int generate_points_change_coord(
     std::vector<double>& coords,
     std::vector<double>& coords_dot,
     std::vector<double>& coords_dot_dot,

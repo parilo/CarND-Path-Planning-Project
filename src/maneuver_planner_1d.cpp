@@ -16,7 +16,7 @@ void ManeuverPlanner1d::start_new_maneuver(double coord)
   coords_dot.clear();
   coords_dot_dot.clear();
   maneuver_step = 0;
-  maneuver_current_coord = coord;
+//  maneuver_current_coord = coord;
   maneuver_t = 0;
 }
 
@@ -54,7 +54,7 @@ int ManeuverPlanner1d::add_change_coord(
 {
   int maneuver_steps_count = maneuver_time / maneuver_step_dt;
 std::cout << "change coord: steps: " << maneuver_steps_count << " t: " << maneuver_time << std::endl;
-  int steps = jmt.generate_points(
+  int steps = jmt.generate_points_change_coord(
     coords,
     coords_dot,
     coords_dot_dot,
@@ -198,7 +198,7 @@ void ManeuverPlanner1d::update_maneuver(
   double current_coord
 ){
   maneuver_step += step_passed;
-  maneuver_current_coord = current_coord;
+//  maneuver_current_coord = current_coord;
   maneuver_t += step_passed * 0.02;
 }
 

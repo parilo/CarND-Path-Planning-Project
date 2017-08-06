@@ -49,23 +49,14 @@ class ManeuverPlanner1d {
     std::vector<double>& coords
   );
 
-
-
-
-
-  // int get_step () { return maneuver_step; }
   int get_steps_left () { return coords.size() - maneuver_step; }
-  // double get_passed_coord () { return maneuver_current_coord - maneuver_start_coord; }
-  // double get_t () { return maneuver_t; }
-  //
 
  private:
 
   const double maneuver_step_dt = 0.02;
 
   int maneuver_step = 0;
-  // double maneuver_start_coord = 0;
-  double maneuver_current_coord = 0;
+//  double maneuver_current_coord = 0;
   double maneuver_t = 0;
 
   double next_maneuver_start_coord;

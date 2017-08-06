@@ -15,7 +15,6 @@ set(sources
   src/map_funcs.cpp
   src/trajectory_smoother.cpp
   src/behavior_layer.cpp
-  src/lane_state.cpp
 )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
