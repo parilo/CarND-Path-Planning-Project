@@ -482,6 +482,12 @@ void BehaviorLayer::process_step (
     }
     else if (current_state == CarState::FOLLOW_SLOWING)
     {
+
+      std::cout << " state: " << int(current_state) << " fcs " << get_front_car_speed(car_state, sensor_data) << " : " << std::min(allowed_forward_speed, 0.6 * get_front_car_speed(
+                                                                                                                                     car_state,
+                                                                                                                                     sensor_data
+                                                                                                                                   ))<<std::endl;
+
       calc_move_forward(
         next_s_vals,
         next_d_vals,
