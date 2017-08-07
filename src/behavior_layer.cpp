@@ -469,8 +469,8 @@ void BehaviorLayer::process_step (
         next_s_vals,
         next_d_vals,
         car_state,
-        // 0.9 is needed to handle front car speed decreasing
-        std::min(allowed_forward_speed, 0.9 * get_front_car_speed(
+        // 0.94 is needed to handle front car speed decreasing
+        std::min(allowed_forward_speed, 0.94 * get_front_car_speed(
           car_state,
           sensor_data
         ))
