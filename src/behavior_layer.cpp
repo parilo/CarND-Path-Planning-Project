@@ -422,11 +422,6 @@ void BehaviorLayer::process_step (
   double car_s = car_state[2];
   double car_d = car_state[3];
 
-  int passed_steps = maneuver_planner.get_steps_left() - previous_path_x.size();
-  maneuver_planner.update_maneuver(
-    passed_steps
-  );
-
   if (state_changed || previous_path_x.size() < maneuver_recalc_steps_count)
   {
     std::vector<double> next_s_vals, next_d_vals;
@@ -492,12 +487,15 @@ void BehaviorLayer::process_step (
     }
 
     // keep 10 steps from old trajectory and transite into new in 100 steps
-    int previous_path_size = previous_path_x.size();
-    TrajectorySmoother::merge_trajectoies(next_x_vals, previous_path_x, new_xs, 10, std::min(100, previous_path_size-10));
-    TrajectorySmoother::merge_trajectoies(next_y_vals, previous_path_y, new_ys, 10, std::min(100, previous_path_size-10));
+    TrajectorySmoother::merge_trajectoies(next_x_vals, previous_path_x, new_xs, 10, 100);
+    TrajectorySmoother::merge_trajectoies(next_y_vals, previous_path_y, new_ys, 10, 100);
   }
   else
   {
+    int passed_steps = maneuver_planner.get_steps_left() - previous_path_x.size();
+    maneuver_planner.update_maneuver(
+      passed_steps
+    );
     next_x_vals.resize(previous_path_x.size());
     next_y_vals.resize(previous_path_y.size());
     copy(previous_path_x.begin(), previous_path_x.end(), next_x_vals.begin());

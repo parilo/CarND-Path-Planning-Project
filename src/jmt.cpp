@@ -336,7 +336,7 @@ int JMT::generate_points_accelerate(
   int steps_count
 )
 {
-  double T = fabs(end_v - start_v) / 4.0;
+  double T = fabs(end_v - start_v) / 5.0;
   if (T < 2 * dt) return 0;
 
   std::vector<double> trajectory_params;
