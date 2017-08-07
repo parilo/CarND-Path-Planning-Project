@@ -10,7 +10,7 @@
 class BehaviorLayer {
  public:
 
-  enum class CarState {START, MOVE_FORWARD, FOLLOW, FOLLOW_SLOWING, CHANGING_LEFT, CHANGING_RIGHT};
+  enum class CarState {START, MOVE_FORWARD, FOLLOW, CHANGING_LEFT, CHANGING_RIGHT};
 
   /**
    * @brief set map keypoints
