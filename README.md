@@ -1,4 +1,4 @@
-# Highway driving car autopilot planner
+# Highway Driving Car Autopilot Planner
 
 [![Highway driving car autopilot planner demo](http://img.youtube.com/vi/v4lRn_nQXrE/0.jpg)](https://www.youtube.com/watch?v=v4lRn_nQXrE)
 

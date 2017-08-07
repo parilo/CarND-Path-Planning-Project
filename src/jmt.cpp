@@ -46,6 +46,14 @@ void generate_parameters(
   params = {start[0], start[1], 0.5*start[2], x[0], x[1], x[2]};
 }
 
+/**
+ * @brief Check acceleration trajectory wether it violates constraints
+ * @param speed_limit - trajectory must not exceed speed_limit
+ * @param T - trajectory duration
+ * @param dt - time step
+ * @param trajectory_params - JMT params
+ * @return 0 - if trajectory is good enough, -1 or 1 - direction of S modification for optimizer
+ */
 int check_accelerate (
   double speed_limit,
   double T,
@@ -80,6 +88,14 @@ int check_accelerate (
   return 0;
 }
 
+/**
+ * @brief Check acceleration trajectory wether it violates constraints
+ * @param speed_lower_limit - trajectory must not go under speed_lower_limit
+ * @param T - trajectory duration
+ * @param dt - time step
+ * @param trajectory_params - JMT params
+ * @return 0 - if trajectory is good enough, -1 or 1 - direction of S modification for optimizer
+ */
 int check_decelerate (
   double speed_lower_limit,
   double T,
@@ -114,6 +130,20 @@ int check_decelerate (
   return 0;
 }
 
+/**
+ * @brief Optimize JMT parameters for acceleration and deceleration
+ * @param params - output JMT parameters
+ * @param T - trajectory time
+ * @param end_0 - begin point for trajectory size optimization
+ * @param start - start coordinate
+ * @param start_v - start first derivative
+ * @param start_a - start second derivative
+ * @param end_v - end derivative
+ * @param end_a - end second derivative
+ * @param dt - time parameter step for points gereration
+ * @param generate_function - calc JMT params function. see generate_parameters func
+ * @param check_function - check trajectory function
+ */
 void optimize_accelerate_parameters (
   std::vector<double>& params,
   double T,
@@ -145,6 +175,16 @@ void optimize_accelerate_parameters (
   } while (S_mod != 0 && S_step > 1e-3);
 }
 
+/**
+ * @brief Calculates optimal JMT parameters for acceleration
+ * @param params - output JMT parameters
+ * @param T - trajectory time
+ * @param start - start coordinate
+ * @param start_v - start first derivative
+ * @param start_a - start second derivative
+ * @param end_v - end derivative
+ * @param end_a - end second derivative
+ */
 void generate_parameters_accelerate(
   std::vector<double>& params,
   double T,
@@ -173,6 +213,16 @@ void generate_parameters_accelerate(
   );
 }
 
+/**
+ * @brief Calculates optimal JMT parameters for deceleration
+ * @param params - output JMT parameters
+ * @param T - trajectory time
+ * @param start - start coordinate
+ * @param start_v - start first derivative
+ * @param start_a - start second derivative
+ * @param end_v - end derivative
+ * @param end_a - end second derivative
+ */
 void generate_parameters_decelerate(
   std::vector<double>& params,
   double T,
@@ -201,6 +251,17 @@ void generate_parameters_decelerate(
   );
 }
 
+/**
+ * @brief Calculate trajectory points for JMT parameters
+   * @param coords - output coordinates
+   * @param coords_dot - output first derivative of coordinates
+   * @param coords_dot_dot - output second derivative
+   * @param trajectory_params - JMT parameters
+   * @param T - trajectory time
+   * @param dt - time parameter step for points gereration
+   * @param steps_count - maximum amount of steps to generate
+ * @return
+ */
 int generate_points(
   std::vector<double>& coords,
   std::vector<double>& coords_dot,
@@ -248,6 +309,20 @@ int generate_points(
   return i;
 }
 
+/**
+ * @brief Generate points for JMT for acceleration and deceleration
+ * @param coords - output coordinates
+ * @param coords_dot - output first derivative of coordinates
+ * @param coords_dot_dot - output second derivative
+ * @param start - start coordinate
+ * @param start_v - start first derivative
+ * @param start_a - start second derivative
+ * @param end_v - end derivative
+ * @param end_a - end second derivative
+ * @param dt - time parameter step for points gereration
+ * @param steps_count - maximum amount of steps to generate
+ * @return generated steps, may vary because trajectory may have different time length
+ */
 int JMT::generate_points_accelerate(
   std::vector<double>& coords,
   std::vector<double>& coords_dot,
@@ -298,6 +373,18 @@ int JMT::generate_points_accelerate(
   );
 }
 
+/**
+ * @brief Generate points for JMT for changing coorinate trajectory
+ * @param coords - output coordinates
+ * @param coords_dot - output first derivative of coordinates
+ * @param coords_dot_dot - output second derivative
+ * @param start - vector of start [coordinate, first, second derivative]
+ * @param end - vector ot end [coordinate, first, second derivative]
+ * @param T - time of maneuver
+ * @param steps_count - amount of steps to generate
+ * @param dt
+ * @return generated steps
+ */
 int JMT::generate_points_change_coord(
   std::vector<double>& coords,
   std::vector<double>& coords_dot,

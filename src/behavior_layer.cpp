@@ -3,6 +3,12 @@
 #include "map_funcs.h"
 #include "trajectory_smoother.h"
 
+/**
+ * @brief set map keypoints
+ * @param map_waypoints_s
+ * @param map_waypoints_x
+ * @param map_waypoints_y
+ */
 void BehaviorLayer::set_map_waypoints (
   const std::vector<double>& map_waypoints_s,
   const std::vector<double>& map_waypoints_x,
@@ -14,20 +20,25 @@ void BehaviorLayer::set_map_waypoints (
   this->map_waypoints_y = map_waypoints_y;
 }
 
-
 int get_lane_index (double car_d)
 {
-  // lanes centers positions in d are: 2.2, 6.2, 10.2 in average
+  // lanes centers positions in d are: 1.8, 5.8, 9.8 in average
   return int(round((car_d - 1.8) / 4.0));
 }
-
 
 double get_lane_d (int lane_index)
 {
   return lane_index * 4 + 1.8;
 }
 
-
+/**
+ * @brief Calculate cost functions for lanes
+ * @param lanes_time_to_collision - for every lane
+ * @param lanes_distances - for every lane
+ * @param lanes_speed - for every lane
+ * @param car_state - vector [x, y, s, d, yaw, v]
+ * @param sensor_data - information about other cars on the road
+ */
 void get_lanes_values (
   std::vector<double>& lanes_time_to_collision,
   std::vector<double>& lanes_distances,
@@ -54,7 +65,6 @@ void get_lanes_values (
 
     // determine lane of the car
     int lane_index = get_lane_index (other_car_d);
-// std::cout << "  other car lane: " << lane_index << std::endl;
     // determine ds/dt, suppose car travels along the road
     double other_car_s_dot = distance (0, 0, other_car_vx, other_car_vy);
 
@@ -66,7 +76,6 @@ void get_lanes_values (
         )
     ) {
       double time_to_collision = (car_s - other_car_s) / (other_car_s_dot - car_s_dot);
-// std::cout << "    v: " << time_to_collision << std::endl;
       if (
         time_to_collision >= 0 &&
         lanes_time_to_collision[lane_index] > time_to_collision
@@ -77,6 +86,7 @@ void get_lanes_values (
 
     double other_car_dist = other_car_s - car_s;
 
+    // considering the closest front car
     if (
       other_car_dist >= 0 &&
       lanes_distances[lane_index] > other_car_dist
@@ -85,20 +95,14 @@ void get_lanes_values (
       lanes_speed[lane_index] = other_car_s_dot;
     }
   }
-
-//std::cout << "  lanes values: ";
-//  for(int i=0; i<3; i++)
-//  {
-//std::cout <<
-//  lanes_time_to_collision[i] <<
-//  " " << lanes_distances[i] <<
-//  " " << lanes_speed[i] <<
-//  " | ";
-//  }
-//std::cout << std::endl;
 }
 
-
+/**
+ * @brief get front car speed
+ * @param car_state - vector [x, y, s, d, yaw, v]
+ * @param sensor_data - information about other cars on the road
+ * @return
+ */
 double BehaviorLayer::get_front_car_speed (
   const std::vector<double>& car_state,
   const std::vector<std::vector<double>>& sensor_data
@@ -122,7 +126,6 @@ double BehaviorLayer::get_front_car_speed (
     if (lane_index == my_lane_index)
     {
       double dist = other_car_s - car_s;
-// std::cout << "my lane car: dist: " << dist << " v: " << distance (0, 0, other_car_vx, other_car_vy) << " my lane: " << my_lane_index << " other lane: " << lane_index << std::endl;
       if (dist > 0 && dist < closest_car_dist)
       {
         closest_car_dist = dist;
@@ -134,7 +137,13 @@ double BehaviorLayer::get_front_car_speed (
   return closest_car_v;
 }
 
-
+/**
+ * @brief is lane is closed to be changed in. Other car may interfere
+ * @param lane_index
+ * @param car_state - vector [x, y, s, d, yaw, v]
+ * @param sensor_data
+ * @return
+ */
 bool BehaviorLayer::is_lane_closed (
   int lane_index,
   const std::vector<double>& car_state,
@@ -161,7 +170,15 @@ bool BehaviorLayer::is_lane_closed (
   return false;
 }
 
-
+/**
+ * @brief Desides wether it is reasonable to change lane
+ * @param car_state - vector [x, y, s, d, yaw, v]
+ * @param lanes_time_to_collision - for every lane
+ * @param lanes_distances - for every lane
+ * @param lanes_speed - for every lane
+ * @param sensor_data - information about other cars on the road
+ * @return
+ */
 int BehaviorLayer::try_change_lane (
   const std::vector<double>& car_state,
   const std::vector<double>& lanes_time_to_collision,
@@ -177,6 +194,7 @@ int BehaviorLayer::try_change_lane (
   if (my_lane_index == 0)
   {
     bool lane_open = !is_lane_closed(1, car_state, sensor_data);
+    // center lane is preffered for us
     if (
       lanes_time_to_collision[1] > safety_time_to_collision &&
       lanes_distances[1] > lanes_distances[0] &&
@@ -194,6 +212,8 @@ int BehaviorLayer::try_change_lane (
     bool right_lane_open = !is_lane_closed(2, car_state, sensor_data);
     if ((lanes_distances[0] > lanes_distances[2]) && left_lane_open){
       if (
+        // move to side lane if it has big probability to pass
+        // or its car have bigger speed
         (
           lanes_distances[0] > 1.4 * (safety_front_car_dist + safety_change_lane_gap) &&
           left_lane_open
@@ -210,6 +230,8 @@ int BehaviorLayer::try_change_lane (
       }
     } else {
       if (
+        // move to side lane if it has big probability to pass
+        // or its car have bigger speed
         (
           lanes_distances[2] > (safety_front_car_dist + safety_change_lane_gap) &&
           right_lane_open
@@ -230,6 +252,7 @@ int BehaviorLayer::try_change_lane (
   else if (my_lane_index == 2)
   {
     bool lane_open = !is_lane_closed(1, car_state, sensor_data);
+    // center lane is preffered for us
     if (
       lanes_time_to_collision[1] > safety_time_to_collision &&
       lanes_distances[1] > lanes_distances[2] &&
@@ -244,6 +267,11 @@ int BehaviorLayer::try_change_lane (
   return 0;
 }
 
+/**
+ * @brief is destination lane reached
+ * @param car_state - vector [x, y, s, d, yaw, v]
+ * @return
+ */
 bool BehaviorLayer::is_dst_lane_reached (const std::vector<double>& car_state)
 {
   double car_d = car_state[3];
@@ -251,6 +279,13 @@ bool BehaviorLayer::is_dst_lane_reached (const std::vector<double>& car_state)
   return fabs(dst_lane_center_d - car_d) < 0.5;
 }
 
+/**
+ * @brief Central desision making method.
+ *   Desides wether it is needed to change current state
+ * @param car_state - vector [x, y, s, d, yaw, v]
+ * @param sensor_data - information about other cars on the road
+ * @return
+ */
 bool BehaviorLayer::update_current_state (
   const std::vector<double>& car_state,
   const std::vector<std::vector<double>>& sensor_data
@@ -280,12 +315,6 @@ bool BehaviorLayer::update_current_state (
   else if (current_state == CarState::MOVE_FORWARD)
   {
     int my_lane_index = get_lane_index (car_d);
-
-//bool right_lane_open = !is_lane_closed(2, car_state, sensor_data);
-//if (right_lane_open && car_state[5] > 15.0 && my_lane_index < 2){
-//  current_state = CarState::CHANGING_RIGHT;
-//  dst_lane_index = my_lane_index + 1;
-//} else
 
     if (lanes_distances [my_lane_index] < safety_front_car_dist)
     {
@@ -340,6 +369,8 @@ bool BehaviorLayer::update_current_state (
   else if (current_state == CarState::FOLLOW)
   {
     int my_lane_index = get_lane_index (car_d);
+    // if we decreased veclocity because of road curvature and
+    // left followed car we need to FORWARD
     if (lanes_distances [my_lane_index] > 1.5 * safety_front_car_dist){
       current_state = CarState::MOVE_FORWARD;
     } else {
@@ -368,10 +399,19 @@ bool BehaviorLayer::update_current_state (
   return prev_state != current_state;
 }
 
+/**
+ * @brief process input from simulator
+ * @param next_x_vals
+ * @param next_y_vals
+ * @param car_state - vector [x, y, s, d, yaw, v]
+ * @param previous_path_x
+ * @param previous_path_y
+ * @param sensor_data - information about other cars on the road
+ */
 void BehaviorLayer::process_step (
   std::vector<double>& next_x_vals,
   std::vector<double>& next_y_vals,
-  const std::vector<double>& car_state, // x, y, s, d, yaw, v
+  const std::vector<double>& car_state,
   const std::vector<double>& previous_path_x,
   const std::vector<double>& previous_path_y,
   const std::vector<std::vector<double>>& sensor_data
@@ -381,11 +421,6 @@ void BehaviorLayer::process_step (
 
   double car_s = car_state[2];
   double car_d = car_state[3];
-//  std::cout <<
-//    "car lane: " << get_lane_index(car_d) <<
-//    " state: " << int(current_state) <<
-//    " front car speed: " << get_front_car_speed(car_state, sensor_data) <<
-//    std::endl;
 
   if (state_changed || previous_path_x.size() < maneuver_recalc_steps_count)
   {
@@ -404,12 +439,8 @@ void BehaviorLayer::process_step (
       map_waypoints_y
     );
     double curv = getMaxCurvatureOfRoad(car_s, car_d, 50, splined_waypoints_s, splined_waypoints_x, splined_waypoints_y);
-    double curv_max_speed = std::sqrt(2.0 / curv);// / 0.44704;
+    double curv_max_speed = std::sqrt(2.0 / curv);
     double allowed_forward_speed = std::min(forward_speed, curv_max_speed);
-//    if (curv > 0.001 ){
-//      allowed_forward_speed -= (curv - 0.001) * 5 / 0.007;
-//    }
-std::cout << "--- curvature: " << curv << " as: " << allowed_forward_speed << std::endl;
 
     if (current_state == CarState::MOVE_FORWARD)
     {
@@ -433,7 +464,8 @@ std::cout << "--- curvature: " << curv << " as: " << allowed_forward_speed << st
         next_s_vals,
         next_d_vals,
         car_state,
-        std::min(allowed_forward_speed, get_front_car_speed(
+        // 0.94 is needed to handle front car speed decreasing
+        std::min(allowed_forward_speed, 0.94 * get_front_car_speed(
           car_state,
           sensor_data
         ))
@@ -444,7 +476,6 @@ std::cout << "--- curvature: " << curv << " as: " << allowed_forward_speed << st
     std::vector<double> new_xs, new_ys;
 
     for (int i=0; i<next_s_vals.size(); i++) {
-//std::cout << "i: " << i << " s: " << next_s_vals[i] << " d: " << next_d_vals[i] << std::endl;
       std::vector<double> xy = getXY(next_s_vals[i], next_d_vals[i], splined_waypoints_s, splined_waypoints_x, splined_waypoints_y);
       new_xs.push_back(xy[0]);
       new_ys.push_back(xy[1]);
@@ -455,18 +486,15 @@ std::cout << "--- curvature: " << curv << " as: " << allowed_forward_speed << st
       TrajectorySmoother::smooth_trajectory(new_ys);
     }
 
-    TrajectorySmoother::merge_trajectoies(next_x_vals, previous_path_x, new_xs, 100);
-    TrajectorySmoother::merge_trajectoies(next_y_vals, previous_path_y, new_ys, 100);
+    // keep 10 steps from old trajectory and transite into new in 100 steps
+    TrajectorySmoother::merge_trajectoies(next_x_vals, previous_path_x, new_xs, 10, 100);
+    TrajectorySmoother::merge_trajectoies(next_y_vals, previous_path_y, new_ys, 10, 100);
   }
   else
   {
-    double car_s = car_state[2];
-    double car_d = car_state[3];
     int passed_steps = maneuver_planner.get_steps_left() - previous_path_x.size();
     maneuver_planner.update_maneuver(
-      passed_steps,
-      car_s,
-      car_d
+      passed_steps
     );
     next_x_vals.resize(previous_path_x.size());
     next_y_vals.resize(previous_path_y.size());
@@ -476,19 +504,13 @@ std::cout << "--- curvature: " << curv << " as: " << allowed_forward_speed << st
 
 }
 
-void BehaviorLayer::calc_move_forward (
-  std::vector<double>& next_s_vals,
-  std::vector<double>& next_d_vals,
-  const std::vector<double>& car_state
-){
-  calc_move_forward(
-    next_s_vals,
-    next_d_vals,
-    car_state,
-    forward_speed
-  );
-}
-
+/**
+ * @brief Calculate move forward in lane trajectory
+ * @param next_s_vals - output trajectory s values
+ * @param next_d_vals - output trajectory d values
+ * @param car_state - vector [x, y, s, d, yaw, v]
+ * @param dst_speed
+ */
 void BehaviorLayer::calc_move_forward (
   std::vector<double>& next_s_vals,
   std::vector<double>& next_d_vals,
@@ -512,6 +534,13 @@ void BehaviorLayer::calc_move_forward (
   );
 }
 
+/**
+ * @brief Calculate change lane trajectory
+ * @param next_s_vals - output trajectory s values
+ * @param next_d_vals - output trajectory d values
+ * @param car_state - vector [x, y, s, d, yaw, v]
+ * @param new_lane_index
+ */
 void BehaviorLayer::calc_change_lane (
   std::vector<double>& next_s_vals,
   std::vector<double>& next_d_vals,
