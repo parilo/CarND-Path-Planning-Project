@@ -371,7 +371,9 @@ bool BehaviorLayer::update_current_state (
     int my_lane_index = get_lane_index (car_d);
     // if we decreased veclocity because of road curvature and
     // left followed car we need to FORWARD
-    if (lanes_distances [my_lane_index] > 1.5 * safety_front_car_dist){
+    if (lanes_distances [my_lane_index] < 0.8 * safety_front_car_dist) {
+      current_state = CarState::FOLLOW_SLOWING;
+    } else if (lanes_distances [my_lane_index] > 2.0 * safety_front_car_dist){
       current_state = CarState::MOVE_FORWARD;
     } else {
 
@@ -393,6 +395,14 @@ bool BehaviorLayer::update_current_state (
       }
       dst_lane_index = my_lane_index + lane_index_change;
 
+    }
+  }
+
+  else if (current_state == CarState::FOLLOW_SLOWING)
+  {
+    int my_lane_index = get_lane_index (car_d);
+    if (lanes_distances [my_lane_index] > safety_front_car_dist) {
+      current_state = CarState::FOLLOW;
     }
   }
 
@@ -464,8 +474,25 @@ void BehaviorLayer::process_step (
         next_s_vals,
         next_d_vals,
         car_state,
-        // 0.94 is needed to handle front car speed decreasing
-        std::min(allowed_forward_speed, 0.94 * get_front_car_speed(
+        std::min(allowed_forward_speed, get_front_car_speed(
+          car_state,
+          sensor_data
+        ))
+      );
+    }
+    else if (current_state == CarState::FOLLOW_SLOWING)
+    {
+
+      std::cout << " state: " << int(current_state) << " fcs " << get_front_car_speed(car_state, sensor_data) << " : " << std::min(allowed_forward_speed, 0.6 * get_front_car_speed(
+                                                                                                                                     car_state,
+                                                                                                                                     sensor_data
+                                                                                                                                   ))<<std::endl;
+
+      calc_move_forward(
+        next_s_vals,
+        next_d_vals,
+        car_state,
+        std::min(allowed_forward_speed, 0.8 * get_front_car_speed(
           car_state,
           sensor_data
         ))
