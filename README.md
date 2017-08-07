@@ -97,11 +97,11 @@ To deal with other cars on the road we need to make decisions when to change lan
 States transitions may performs as follows
 
 _   | Start | Forward | Follow | Follow And Slow | Change Left | Change Right
---- | --- | --- | --- | --- | ---
+--- | --- | --- | --- | --- | --- | ---
 Start            | _ | + | _ | _ | _ | _
 Forward          | _ | _ | + | _ | + | +
 Follow           | _ | + | _ | + | + | +
-Follow and Slow  | _ | _ | + | _ | _ | _
+Follow And Slow  | _ | _ | + | _ | _ | _
 Change Left      | _ | + | _ | _ | _ | _
 Change Right     | _ | + | _ | _ | _ | _
 
